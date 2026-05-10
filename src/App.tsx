@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Tab, User } from './types';
+import { Tab, User, ServerInfo } from './types';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Navbar } from './components/Layout/Navbar';
 import { HelpTab } from './components/HelpTab';
@@ -13,7 +13,7 @@ import { DashboardHome } from './components/Dashboard/DashboardHome';
 import { Onboarding } from './components/Onboarding';
 import { WelcomeScreen } from './components/Auth/WelcomeScreen';
 import { Navigation } from './components/Navigation';
-import { Radio, Users, Mic, ShieldAlert, Monitor, Camera, Globe, Music } from 'lucide-react';
+import { Radio, Users, Mic, ShieldAlert, Monitor, Camera, Globe, Music, RefreshCw, Server, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CHANNELS } from './constants';
 
@@ -39,6 +39,9 @@ export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
+  const [reconnectCount, setReconnectCount] = useState(0);
+  
   const isPTTActiveRef = useRef(false);
   // WebRTC Refs
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -124,17 +127,50 @@ export default function App() {
 
     if (username) {
       const manualIp = localStorage.getItem('churchlink_server_ip');
-      const connectionUrl = manualIp ? (manualIp.startsWith('http') ? manualIp : `http://${manualIp}:3000`) : undefined;
+      
+      // Determine connection URL
+      // 1. If manual IP is set, use it.
+      // 2. Otherwise, if in Electron (isPackaged), default to localhost.
+      // 3. Otherwise, use location.origin (default io() behavior).
+      let connectionUrl = undefined;
+      if (manualIp) {
+        connectionUrl = (manualIp.startsWith('http') ? manualIp : `http://${manualIp}:3000`);
+      } else if (window.electron) { 
+        // We are in Electron
+        connectionUrl = 'http://localhost:3000';
+      }
+
+      console.log(`Initializing socket connection to: ${connectionUrl || 'automatic (host)'}`);
       
       const socket = io(connectionUrl, {
         transports: ['websocket'],
-        upgrade: false
+        upgrade: false,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 2000
       });
       socketRef.current = socket;
 
       socket.on('connect', () => {
+        console.log('Successfully connected to intercom server');
         setSocketConnected(true);
+        setReconnectCount(0);
         socket.emit('join-intercom', { username });
+        
+        // Fetch server info
+        const urlToFetch = connectionUrl || window.location.origin;
+        fetch(`${urlToFetch}/api/info`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === 'ok') {
+              setServerInfo(data);
+              console.log('Server info synchronized:', data);
+            }
+          })
+          .catch(err => console.warn('Could not fetch server info:', err));
+      });
+
+      socket.on('reconnect_attempt', () => {
+        setReconnectCount(prev => prev + 1);
       });
 
       socket.on('active-users-update', (users: User[]) => {
@@ -278,7 +314,20 @@ export default function App() {
       // Fallback initialization if listeners didn't fire for some reason
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    setIsPTTActive(true);
+    
+    // Ensure local stream is active before transmitting
+    if (!localStreamRef.current) {
+      console.warn("Local stream missing during PTT, attempting to initialize...");
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          localStreamRef.current = stream;
+          stream.getAudioTracks().forEach(track => track.enabled = true);
+          setIsPTTActive(true);
+        })
+        .catch(err => console.error("PTT microphone recovery failed:", err));
+    } else {
+      setIsPTTActive(true);
+    }
   };
 
   const stopTalk = () => {
@@ -302,6 +351,37 @@ export default function App() {
     return (
       <>
         {remoteAudioElements}
+        {!socketConnected && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[150] bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <div className="max-w-sm w-full glass p-8 rounded-[2.5rem] border-red-500/20 text-center space-y-6">
+              <div className="h-16 w-16 bg-red-500/10 rounded-full mx-auto flex items-center justify-center text-red-500">
+                <WifiOff size={32} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-red-100">Connection Lost</h2>
+                <p className="text-zinc-500 text-sm">
+                  The intercom server is unreachable. Attempting to reconnect...
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-3 py-2">
+                <RefreshCw size={16} className="text-blue-500 animate-spin" />
+                <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+                  Attempt {reconnectCount} of 10
+                </span>
+              </div>
+              <button 
+                onClick={() => window.location.reload()}
+                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-xs font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
+              >
+                Force Refresh
+              </button>
+            </div>
+          </motion.div>
+        )}
         {(() => {
           switch (currentTab) {
             case 'dashboard':
@@ -459,7 +539,12 @@ export default function App() {
             </div>
 
             <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
-              <Navbar username={username} onLogout={handleLogout} />
+              <Navbar 
+                username={username} 
+                onLogout={handleLogout} 
+                socketConnected={socketConnected}
+                serverInfo={serverInfo}
+              />
 
               <main className="pt-24 px-6 md:px-12 max-w-[1600px] mx-auto min-h-screen">
                 <AnimatePresence mode="wait">

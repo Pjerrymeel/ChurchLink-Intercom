@@ -42,3 +42,9 @@ export interface TutorialVideo {
   duration: string;
   thumbnail: string;
 }
+
+export interface ServerInfo {
+  ips: string[];
+  port: number;
+  hostname: string;
+}

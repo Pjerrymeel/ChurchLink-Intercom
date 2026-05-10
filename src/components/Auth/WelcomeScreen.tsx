@@ -180,7 +180,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
                         />
                       </div>
                       <p className="text-[9px] text-zinc-700 italic ml-1">
-                        Only needed if the mobile app cannot find the central server automatically.
+                        {window.electron 
+                          ? "Usually automatic: 'localhost' if this is the host PC."
+                          : "Required for Mobile: Enter the IP shown on your server PC's screen (e.g. 192.168.1.100)."}
                       </p>
                     </motion.div>
                   )}

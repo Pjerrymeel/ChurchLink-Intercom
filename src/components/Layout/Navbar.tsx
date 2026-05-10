@@ -5,43 +5,54 @@ import {
   Search, 
   Settings, 
   ShieldCheck, 
-  Signal
+  Signal,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
+import { ServerInfo } from '../../types';
 
 interface NavbarProps {
   username: string;
   onLogout: () => void;
+  socketConnected: boolean;
+  serverInfo: ServerInfo | null;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ username, onLogout }) => {
+export const Navbar: React.FC<NavbarProps> = ({ username, onLogout, socketConnected, serverInfo }) => {
   return (
     <header className="fixed top-0 right-0 left-0 lg:left-64 h-16 glass z-40 px-6 flex items-center justify-between border-b border-zinc-800">
       <div className="flex items-center gap-6">
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-zinc-800/50 rounded-full border border-zinc-700/50">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Live Server</span>
-          <span className="text-[10px] text-zinc-500 font-mono">192.168.1.104</span>
+        <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border transition-colors ${socketConnected ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+          <div className={`h-2 w-2 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+          <span className={`text-[10px] font-bold uppercase tracking-widest ${socketConnected ? 'text-emerald-500' : 'text-red-500'}`}>
+            {socketConnected ? 'Live Server' : 'Disconnected'}
+          </span>
+          {serverInfo && socketConnected && (
+            <span className="text-[10px] text-zinc-500 font-mono ml-1">
+              {serverInfo.ips[0] || 'localhost'}
+            </span>
+          )}
         </div>
         
         <div className="relative hidden md:block">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
           <input 
             type="text" 
-            placeholder="Quick command..."
+            placeholder="Search channels or team..."
             className="bg-zinc-950/50 border border-zinc-800 rounded-lg py-1.5 pl-9 pr-4 text-xs w-64 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
           />
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden sm:flex items-center gap-4 mr-4 text-zinc-400">
+        <div className="hidden lg:flex items-center gap-4 mr-4 text-zinc-400">
           <div className="flex items-center gap-1">
-            <Signal size={14} className="text-emerald-500" />
-            <span className="text-[10px] font-mono">14ms</span>
+            {socketConnected ? <Wifi size={14} className="text-emerald-500" /> : <WifiOff size={14} className="text-red-500" />}
+            <span className="text-[10px] font-mono">{socketConnected ? 'LAN-SYNC' : 'NO-LINK'}</span>
           </div>
           <div className="flex items-center gap-1">
             <Activity size={14} className="text-blue-500" />
-            <span className="text-[10px] font-mono">98% UP</span>
+            <span className="text-[10px] font-mono">{socketConnected ? '98.2% UP' : 'OFFLINE'}</span>
           </div>
         </div>
 
@@ -55,7 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({ username, onLogout }) => {
         <div className="flex items-center gap-3 pl-2 group">
           <div className="text-right hidden xs:block">
             <p className="text-xs font-bold text-zinc-100 group-hover:text-blue-400 transition-colors">{username}</p>
-            <p className="text-[10px] text-zinc-500 font-medium">Production Team</p>
+            <p className="text-[10px] text-zinc-500 font-medium">Internal Comms</p>
           </div>
           <button 
             onClick={onLogout}

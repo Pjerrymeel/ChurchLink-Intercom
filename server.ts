@@ -125,6 +125,25 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  app.get("/api/info", (req, res) => {
+    const nets = os.networkInterfaces();
+    const ips: string[] = [];
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]!) {
+        if (net.family === 'IPv4' && !net.internal) {
+          ips.push(net.address);
+        }
+      }
+    }
+    res.json({
+      status: "ok",
+      version: "1.0.0",
+      ips: ips,
+      port: PORT,
+      hostname: os.hostname()
+    });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
