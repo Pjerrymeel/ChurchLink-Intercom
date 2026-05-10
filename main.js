@@ -53,6 +53,9 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:3000');
   }
 
+  // Open the DevTools.
+  mainWindow.webContents.openDevTools();
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
