@@ -20,10 +20,23 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
     const savedIp = localStorage.getItem('churchlink_server_ip');
     if (savedIp) setServerIp(savedIp);
     
-    // Detect local IPs if in Electron
-    if (window.electron && window.electron.getLocalIPs) {
-      setLocalIps(window.electron.getLocalIPs());
-    }
+    // Fetch local IPs if available
+    const protocol = window.location.protocol.includes('http') ? window.location.protocol : 'http:';
+    const host = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? window.location.hostname : 'localhost';
+    
+    fetch(`${protocol}//${host}:3000/api/info`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok' && data.ips) {
+          setLocalIps(data.ips);
+        }
+      })
+      .catch(() => {
+        // Fallback or ignore if server not started yet
+        if (window.electron && window.electron.getLocalIPs) {
+          setLocalIps(window.electron.getLocalIPs());
+        }
+      });
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
