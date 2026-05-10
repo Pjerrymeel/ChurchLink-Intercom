@@ -142,7 +142,7 @@ export default function App() {
       const manualIp = localStorage.getItem('churchlink_server_ip');
       
       // Determine connection URL
-      let connectionUrl = undefined;
+      let connectionUrl: string | undefined = undefined;
       const currentHostname = window.location.hostname;
       const currentProtocol = window.location.protocol;
       
@@ -160,23 +160,26 @@ export default function App() {
         connectionUrl = window.location.origin;
       }
       
-      // Special check for mobile environments (Capacitor/Cordova)
-      // If we are on mobile and have no manual IP, we show the setup screen immediately
+      // Special check for mobile environments (Capacitor/Cordova/File)
       const isMobileEnv = currentProtocol.includes('capacitor') || currentProtocol.includes('file') || currentProtocol.includes('android');
       
+      // If we are on mobile and have NO manual IP, we HAVE to ask for one, 
+      // because discovery doesn't work out-of-the-box for different platforms.
       if (isMobileEnv && !manualIp) {
-         console.warn("Mobile environment detected without manual IP. Expecting connection to fail.");
+         console.warn("Mobile environment detected without manual IP. Connection will likely fail.");
+         // We don't set connectionUrl so it doesn't try to connect to capacitor://localhost
+         connectionUrl = undefined; 
          setTimeout(() => setShowErrorOverlay(true), 100);
       }
 
-      console.log(`📡 Connecting to: ${connectionUrl || 'automatic'} | Env: ${isMobileEnv ? 'Mobile' : 'Web/Desktop'}`);
+      console.log(`📡 Connecting to: ${connectionUrl || 'automatic (host)'} | Env: ${isMobileEnv ? 'Mobile' : 'Web/Desktop'}`);
       
-      const socket = io(connectionUrl as any, {
+      const socket = io(connectionUrl, {
         transports: ['websocket'],
         upgrade: false,
         reconnectionAttempts: 25,
         reconnectionDelay: 1000,
-        timeout: 5000
+        timeout: 7000
       });
       socketRef.current = socket;
 
@@ -395,11 +398,13 @@ export default function App() {
               {!isChangingServer ? (
                 <>
                   <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-red-100">Intercom Server Unreachable</h2>
+                    <h2 className="text-xl font-bold text-red-100">Intercom Hub Unreachable</h2>
                     <p className="text-zinc-500 text-sm">
                       {window.electron 
                         ? "The local backend server is not responding. Please wait or try restarting the app."
-                        : "Cannot reach the central intercom server. Ensure you are on the same WiFi as the server PC."}
+                        : (localStorage.getItem('churchlink_server_ip') 
+                            ? `Cannot reach server at ${localStorage.getItem('churchlink_server_ip')}. Ensure you are on the same WiFi as the Host PC.`
+                            : "No server address provided. Mobile users must enter the Host PC's IP address.")}
                     </p>
                   </div>
                   
