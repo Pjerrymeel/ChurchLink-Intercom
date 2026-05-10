@@ -13,42 +13,57 @@ let serverProcess;
 
 function startServer() {
   const serverPath = path.join(__dirname, 'server.ts');
-  const tsxPath = path.join(__dirname, 'node_modules', 'tsx', 'dist', 'cli.mjs');
   
-  console.log(`Starting server from: ${serverPath}`);
+  console.log(`[MAIN] Initializing Intercom Hub Server...`);
+  console.log(`[MAIN] Server Source: ${serverPath}`);
   
   let command;
   let finalArgs;
 
+  // In this environment, tsx is available via node_modules
+  const tsxCli = path.join(__dirname, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+
   if (app.isPackaged) {
-    // In packaged app, we use the bundled node version to run tsx
-    const tsxPath = path.join(__dirname, 'node_modules', 'tsx', 'dist', 'cli.mjs');
     command = process.execPath;
-    finalArgs = [tsxPath, serverPath];
+    finalArgs = [tsxCli, serverPath];
   } else {
-    // In development, use npx
-    command = 'npx';
-    finalArgs = ['tsx', serverPath];
+    command = 'node';
+    finalArgs = [tsxCli, serverPath];
   }
   
-  console.log(`Executing: ${command} ${finalArgs.join(' ')}`);
+  console.log(`[MAIN] Spawning Intercom Engine: ${command} ${finalArgs.join(' ')}`);
 
   serverProcess = spawn(command, finalArgs, {
     cwd: __dirname,
     shell: true,
     env: { 
       ...process.env, 
-      NODE_ENV: 'production',
+      NODE_ENV: app.isPackaged ? 'production' : 'development',
       PORT: '3000'
     }
   });
 
   serverProcess.stdout.on('data', (data) => {
-    console.log(`Server: ${data}`);
+    const output = data.toString();
+    console.log(`[SERVER]: ${output}`);
+    
+    // Broadcast status to window if it exists
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('server-log', output);
+    }
   });
 
   serverProcess.stderr.on('data', (data) => {
-    console.error(`Server Error: ${data}`);
+    console.error(`[SERVER ERROR]: ${data}`);
+  });
+
+  serverProcess.on('close', (code) => {
+    console.log(`[MAIN] Server process exited with code ${code}`);
+    // Optional: Restart server if it crashed
+    if (code !== 0 && !app.isQuiting) {
+        console.log('[MAIN] Attempting to restart Intercom Engine...');
+        setTimeout(startServer, 2000);
+    }
   });
 }
 
@@ -69,6 +84,8 @@ function createWindow() {
   if (app.isPackaged) {
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   } else {
+    // In development, we wait a bit for Vite to start inside the server process
+    // But since we want to be robust, we'll try to load it and the server handles the retry/wait
     mainWindow.loadURL('http://localhost:3000');
   }
 

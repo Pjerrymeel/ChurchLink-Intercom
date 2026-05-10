@@ -9,7 +9,7 @@ import os from "os";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
+export async function startServer() {
   const app = express();
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
@@ -19,8 +19,8 @@ async function startServer() {
   });
 
   const PORT = parseInt(process.env.PORT || "3000");
-
-  // Real-time user state
+  
+  // Internal state
   let users: any[] = [];
   const channels = [
     { id: '1', name: 'Main Tech', description: 'FOH, Lighting, Media', icon: 'monitor' },
@@ -217,8 +217,11 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("UNHANDLED REJECTION:", reason);
 });
 
-// Start the server with error wrapping
-startServer().catch(err => {
-  console.error("FAILED TO START SERVER:", err);
-  process.exit(1);
-});
+// Auto-start if run directly
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('server.ts');
+if (isMainModule) {
+  startServer().catch(err => {
+    console.error("FAILED TO START SERVER:", err);
+    process.exit(1);
+  });
+}

@@ -45,6 +45,8 @@ export default function App() {
   const [isChangingServer, setIsChangingServer] = useState(false);
   const [tempIp, setTempIp] = useState(localStorage.getItem('churchlink_server_ip') || '');
   
+  const isHost = !!window.electron;
+  
   useEffect(() => {
     let timer: any;
     if (!socketConnected) {
@@ -145,8 +147,6 @@ export default function App() {
       let connectionUrl: string | undefined = undefined;
       const currentHostname = window.location.hostname;
       const currentProtocol = window.location.protocol;
-      
-      const isHost = !!window.electron;
       
       if (manualIp) {
         // High priority: Manual IP
@@ -569,9 +569,10 @@ export default function App() {
               <Navigation currentTab={currentTab} onTabChange={setCurrentTab} />
             </div>
             
-            {/* Global PTT Professional Control */}
+            {/* Global Intercom Controls */}
             <AnimatePresence>
-              {!isMainTech ? (
+              {/* Only show PTT on Clients (non-Host) who are NOT on the Main Tech listen-only channel */}
+              {!isHost && !isMainTech && (
                 <motion.div 
                   initial={{ y: 150 }}
                   animate={{ y: 0 }}
@@ -628,7 +629,10 @@ export default function App() {
                     </div>
                   </button>
                 </motion.div>
-              ) : (
+              )}
+
+              {/* Show Listen-Only status for Main Tech channel on Clients */}
+              {!isHost && isMainTech && (
                 <motion.div 
                   initial={{ y: 150 }}
                   animate={{ y: 0 }}
