@@ -1,0 +1,63 @@
+name: Build EXE and APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-id: '20'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm install
+      - name: Build Web
+        run: npm run build
+      - name: Build EXE
+        run: npm run dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChurchLink-Intercom-Windows
+          path: release/*.exe
+
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Install Dependencies
+        run: npm install
+      - name: Build Web
+        run: npm run build
+      - name: Capacitor Android Sync
+        run: |
+          npx cap add android || true
+          npx cap sync android
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChurchLink-Intercom-Android
+          path: android/app/build/outputs/apk/debug/app-debug.apk

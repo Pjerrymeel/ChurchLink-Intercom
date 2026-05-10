@@ -4,6 +4,17 @@ This guide will help you build and install ChurchLink Intercom as a **Windows De
 
 ---
 
+## 🚀 Automatic Builds (GitHub Actions)
+
+This project is configured to build automatically every time you push code to GitHub.
+
+1. Push your code to your GitHub repository.
+2. Go to the **Actions** tab in your repository.
+3. Once the "Build EXE and APK" workflow finishes, click on the run.
+4. Scroll down to **Artifacts** to download your ready-to-use `.exe` and `.apk` files!
+
+---
+
 ## 🖥️ Windows Desktop App (.exe)
 
 The Windows app will act as both the client AND the server. When you open it, it automatically starts the intercom server on your local network.

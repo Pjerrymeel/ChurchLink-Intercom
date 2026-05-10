@@ -18,7 +18,10 @@
     "electron:build": "npm run build && electron-builder",
     "cap:init": "cap init",
     "cap:copy": "cap copy",
-    "cap:open": "cap open android"
+    "cap:open": "cap open android",
+    "android:sync": "npx cap sync android",
+    "android:add": "npx cap add android",
+    "apk:build": "npm run build && npx cap sync android && cd android && chmod +x gradlew && ./gradlew assembleDebug"
   },
   "build": {
     "appId": "com.churchlink.intercom",

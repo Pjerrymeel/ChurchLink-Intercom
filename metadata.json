@@ -1,6 +1,6 @@
 {
   "name": "ChurchLink Intercom",
-  "description": "A simplified communication hub for church teams featuring Push-to-Talk and team channel management.",
+  "description": "Professional LAN Intercom System for Church Technical Teams. Offline-ready local server with Windows (.exe) and Android (.apk) client support.",
   "requestFramePermissions": [
     "microphone"
   ],
