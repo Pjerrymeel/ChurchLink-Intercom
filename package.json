@@ -32,6 +32,7 @@
     "files": [
       "dist/**/*",
       "main.js",
+      "preload.cjs",
       "server.ts",
       "public/**/*",
       "package.json"

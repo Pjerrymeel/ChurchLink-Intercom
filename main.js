@@ -1,7 +1,11 @@
-const { app, BrowserWindow, Tray, Menu } = require('electron');
-const path = require('path');
-const { spawn } = require('child_process');
-const os = require('os');
+import { app, BrowserWindow, Tray, Menu } from 'electron';
+import path from 'path';
+import { spawn } from 'child_process';
+import os from 'os';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let mainWindow;
 let tray;
@@ -9,9 +13,13 @@ let serverProcess;
 
 function startServer() {
   // Use tsx to run the server.ts file in development
-  // In production, you would compile server.ts to JS first
-  serverProcess = spawn('npx', ['tsx', 'server.ts'], {
-    cwd: process.cwd(),
+  // In production, we assume tsx or at least node can execute our server file
+  const serverPath = path.join(__dirname, 'server.ts');
+  
+  console.log(`Starting server from: ${serverPath}`);
+  
+  serverProcess = spawn('npx', ['tsx', serverPath], {
+    cwd: __dirname,
     shell: true,
     env: { ...process.env, NODE_ENV: 'production' }
   });
@@ -32,16 +40,18 @@ function createWindow() {
     title: "ChurchLink Intercom",
     icon: path.join(__dirname, 'public', 'favicon.ico'),
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs')
     }
   });
 
-  // Load the local server
-  // We wait a bit for the server to start
-  setTimeout(() => {
+  // Load the app
+  if (app.isPackaged) {
+    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+  } else {
     mainWindow.loadURL('http://localhost:3000');
-  }, 3000);
+  }
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -53,7 +63,13 @@ function createTray() {
   tray = new Tray(iconPath);
   
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Open ChurchLink', click: () => mainWindow.show() },
+    { label: 'Open ChurchLink', click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+      } else {
+        createWindow();
+      }
+    }},
     { label: 'Quit', click: () => {
       app.isQuiting = true;
       app.quit();
@@ -67,7 +83,6 @@ function createTray() {
 app.on('ready', () => {
   startServer();
   createWindow();
-  // createTray(); // Optional tray icon
 });
 
 app.on('window-all-closed', () => {
@@ -81,4 +96,8 @@ app.on('activate', () => {
   if (mainWindow === null) {
     createWindow();
   }
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
 });
