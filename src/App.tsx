@@ -146,11 +146,13 @@ export default function App() {
       const currentHostname = window.location.hostname;
       const currentProtocol = window.location.protocol;
       
+      const isHost = !!window.electron;
+      
       if (manualIp) {
         // High priority: Manual IP
         connectionUrl = (manualIp.startsWith('http') ? manualIp : `http://${manualIp}:3000`);
-      } else if (window.electron) { 
-        // We are in Electron, default to local server
+      } else if (isHost) { 
+        // We are on the Host EXE, always use localhost
         connectionUrl = 'http://localhost:3000';
       } else if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
         // We are on a browser on the same machine
@@ -160,26 +162,23 @@ export default function App() {
         connectionUrl = window.location.origin;
       }
       
-      // Special check for mobile environments (Capacitor/Cordova/File)
+      // Special check for mobile environments
       const isMobileEnv = currentProtocol.includes('capacitor') || currentProtocol.includes('file') || currentProtocol.includes('android');
       
-      // If we are on mobile and have NO manual IP, we HAVE to ask for one, 
-      // because discovery doesn't work out-of-the-box for different platforms.
-      if (isMobileEnv && !manualIp) {
-         console.warn("Mobile environment detected without manual IP. Connection will likely fail.");
-         // We don't set connectionUrl so it doesn't try to connect to capacitor://localhost
-         connectionUrl = undefined; 
+      if (!isHost && isMobileEnv && !manualIp) {
+         console.warn("Mobile Client detected without Host IP. Showing configuration overlay.");
          setTimeout(() => setShowErrorOverlay(true), 100);
+         return; // Don't even try to connect to nothing
       }
 
-      console.log(`📡 Connecting to: ${connectionUrl || 'automatic (host)'} | Env: ${isMobileEnv ? 'Mobile' : 'Web/Desktop'}`);
+      console.log(`📡 Connecting to: ${connectionUrl || 'automatic'} | Role: ${isHost ? 'HOST' : 'CLIENT'}`);
       
       const socket = io(connectionUrl, {
         transports: ['websocket'],
         upgrade: false,
-        reconnectionAttempts: 25,
+        reconnectionAttempts: 50, // Keep trying!
         reconnectionDelay: 1000,
-        timeout: 7000
+        timeout: 10000
       });
       socketRef.current = socket;
 
@@ -384,122 +383,6 @@ export default function App() {
     return (
       <>
         {remoteAudioElements}
-        {showErrorOverlay && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[150] bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-6"
-          >
-            <div className="max-w-md w-full glass p-8 rounded-[2.5rem] border-red-500/20 text-center space-y-6 shadow-2xl">
-              <div className="h-16 w-16 bg-red-500/10 rounded-full mx-auto flex items-center justify-center text-red-500">
-                <WifiOff size={32} />
-              </div>
-              
-              {!isChangingServer ? (
-                <>
-                  <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-red-100">Intercom Hub Unreachable</h2>
-                    <p className="text-zinc-500 text-sm">
-                      {window.electron 
-                        ? "The local backend server is not responding. Please wait or try restarting the app."
-                        : (localStorage.getItem('churchlink_server_ip') 
-                            ? `Cannot reach server at ${localStorage.getItem('churchlink_server_ip')}. Ensure you are on the same WiFi as the Host PC.`
-                            : "No server address provided. Mobile users must enter the Host PC's IP address.")}
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center justify-center gap-3 py-2 bg-zinc-900/50 rounded-2xl border border-zinc-800/50">
-                    <RefreshCw size={16} className="text-blue-500 animate-spin" />
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                      Attempting Reconnect ({reconnectCount})
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button 
-                      onClick={() => setIsChangingServer(true)}
-                      className="bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
-                    >
-                      Change IP
-                    </button>
-                    <button 
-                      onClick={() => window.location.reload()}
-                      className="bg-blue-600/20 border border-blue-500/30 text-blue-400 py-3 rounded-xl text-[10px] font-bold hover:bg-blue-600/30 transition-all uppercase tracking-widest"
-                    >
-                      Refresh
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-blue-100">Configure Server IP</h2>
-                    <p className="text-zinc-500 text-sm">
-                      Enter the IP address of the main ChurchLink Server PC.
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="text-left space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Server Address</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={tempIp}
-                          onChange={(e) => setTempIp(e.target.value)}
-                          placeholder="e.g. 192.168.1.100"
-                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-zinc-700"
-                        />
-                        <button 
-                          onClick={async () => {
-                            const trimmedIp = tempIp.trim();
-                            if (!trimmedIp) return;
-                            const protocol = trimmedIp.startsWith('http') ? '' : 'http://';
-                            const port = trimmedIp.includes(':') ? '' : ':3000';
-                            const testUrl = `${protocol}${trimmedIp}${port}/api/ping`;
-                            
-                            try {
-                              const res = await fetch(testUrl, { signal: AbortSignal.timeout(3000) });
-                              const text = await res.text();
-                              if (text === 'pong') {
-                                alert("✅ Success! Connection verified.");
-                              } else {
-                                alert("⚠️ Server reached, but response was unexpected.");
-                              }
-                            } catch (e) {
-                              alert("❌ Failed: Could not reach server at this IP.");
-                            }
-                          }}
-                          className="px-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-[10px] font-bold transition-all text-zinc-400 uppercase tracking-widest"
-                        >
-                          Ping
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      <button 
-                        onClick={() => setIsChangingServer(false)}
-                        className="bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        onClick={() => {
-                          localStorage.setItem('churchlink_server_ip', tempIp);
-                          window.location.reload();
-                        }}
-                        className="bg-blue-600 text-white py-3 rounded-xl text-[10px] font-bold hover:bg-blue-500 transition-all uppercase tracking-widest"
-                      >
-                        Save & Connect
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
         {(() => {
           switch (currentTab) {
             case 'dashboard':
@@ -761,9 +644,152 @@ export default function App() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Emergency Overlay Gradient (Global) */}
-            <div className="fixed inset-0 pointer-events-none p-4 opacity-20 bg-[radial-gradient(circle_at_top_right,transparent_70%,rgba(59,130,246,0.1))] border border-white/5" />
+      {/* Global Connection Overlay */}
+      <AnimatePresence>
+        {showErrorOverlay && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[250] bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <div className="max-w-md w-full glass p-8 rounded-[2.5rem] border-red-500/20 text-center space-y-6 shadow-2xl">
+              <div className="h-16 w-16 bg-red-500/10 rounded-full mx-auto flex items-center justify-center text-red-500">
+                <WifiOff size={32} />
+              </div>
+              
+              {!isChangingServer ? (
+                <>
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-bold text-red-100">
+                      {window.electron ? "Internal Server Unreachable" : "Host Server Not Found"}
+                    </h2>
+                    
+                    <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800 text-left space-y-3">
+                      {window.electron ? (
+                        <p className="text-zinc-400 text-xs leading-relaxed">
+                          The <span className="text-blue-400 font-bold uppercase tracking-widest text-[10px]">Intercom Engine</span> failed to start. 
+                          Try restarting the application or check port 3000.
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-zinc-400 text-xs leading-relaxed">
+                            This <span className="text-emerald-400 font-bold uppercase tracking-widest text-[10px]">Client</span> cannot reach the 
+                            <span className="text-blue-400 font-bold uppercase tracking-widest text-[10px]"> Host PC</span>.
+                          </p>
+                          <ul className="text-[10px] space-y-2 text-zinc-500 font-medium">
+                            <li className="flex items-start gap-2">
+                              <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
+                              Ensure the Host PC EXE is open and running.
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
+                              Both devices must be on the SAME WiFi.
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
+                              Enter the Host IP address.
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-center gap-3 py-2 bg-zinc-900/50 rounded-2xl border border-zinc-800/50">
+                    <RefreshCw size={14} className="text-blue-500 animate-spin" />
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                      {socketConnected ? "Link Established" : `Re-linking (Attempt ${reconnectCount})`}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => setIsChangingServer(true)}
+                      className="bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
+                    >
+                      Change IP
+                    </button>
+                    <button 
+                      onClick={() => window.location.reload()}
+                      className="bg-blue-600/20 border border-blue-500/30 text-blue-400 py-3 rounded-xl text-[10px] font-bold hover:bg-blue-600/30 transition-all uppercase tracking-widest"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-bold text-blue-100">Configure Host IP</h2>
+                    <p className="text-zinc-500 text-sm">
+                      Enter the IP of the Windows Host PC.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="text-left space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Host Address</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={tempIp}
+                          onChange={(e) => setTempIp(e.target.value)}
+                          placeholder="e.g. 192.168.x.x"
+                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-zinc-700"
+                        />
+                        <button 
+                          onClick={async () => {
+                            const trimmedIp = tempIp.trim();
+                            if (!trimmedIp) return;
+                            const protocol = trimmedIp.startsWith('http') ? '' : 'http://';
+                            const port = trimmedIp.includes(':') ? '' : ':3000';
+                            const testUrl = `${protocol}${trimmedIp}${port}/api/ping`;
+                            
+                            try {
+                              const res = await fetch(testUrl, { signal: AbortSignal.timeout(3000) } as any);
+                              const text = await res.text();
+                              if (text === 'pong') {
+                                alert("✅ Success! Hub reached.");
+                              } else {
+                                alert("⚠️ Connection made, but response was unexpected.");
+                              }
+                            } catch (e) {
+                              alert("❌ Failed: Could not reach Hub at this IP.");
+                            }
+                          }}
+                          className="px-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-[10px] font-bold transition-all text-zinc-400 uppercase tracking-widest"
+                        >
+                          Ping
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <button 
+                        onClick={() => setIsChangingServer(false)}
+                        className="bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={() => {
+                          localStorage.setItem('churchlink_server_ip', tempIp);
+                          window.location.reload();
+                        }}
+                        className="bg-blue-600 text-white py-3 rounded-xl text-[10px] font-bold hover:bg-blue-500 transition-all uppercase tracking-widest"
+                      >
+                        Save & Link
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

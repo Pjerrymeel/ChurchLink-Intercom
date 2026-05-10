@@ -165,24 +165,24 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         {isHost && (
           <div className="lg:col-span-4 space-y-6">
             <div className="flex items-center justify-between px-2">
-              <h3 className="text-lg font-bold flex items-center gap-3">
+              <h3 className="text-sm font-bold flex items-center gap-3 text-zinc-400 font-mono uppercase tracking-[0.2em]">
                 Intercom Hub Control
-                <span className="bg-blue-500/10 text-blue-500 text-[10px] px-3 py-1 rounded-full border border-blue-500/20 font-black tracking-widest uppercase">
-                  SERVER ACTIVE
+                <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-3 py-1 rounded-full border border-emerald-500/20 font-black tracking-widest uppercase">
+                  MASTER HUB ACTIVE
                 </span>
               </h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="glass p-6 rounded-[2rem] border-blue-500/20 bg-blue-500/5 space-y-4">
                 <div className="flex items-center gap-3 text-blue-400">
                   <Globe size={20} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">LAN Access Points</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Connect URL</span>
                 </div>
                 <div className="space-y-2">
                   {serverInfo?.ips.map(ip => (
-                    <div key={ip} className="flex items-center justify-between bg-zinc-950/50 border border-zinc-800 p-3 rounded-xl">
-                      <span className="text-xs font-mono text-zinc-300">{ip}:3000</span>
+                    <div key={ip} className="flex items-center justify-between bg-zinc-950/80 border border-zinc-800 p-3 rounded-xl">
+                      <span className="text-[11px] font-mono text-zinc-100 font-bold">{ip}:3000</span>
                       <button 
                         onClick={() => {
                           navigator.clipboard.writeText(`${ip}:3000`);
@@ -194,35 +194,53 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                     </div>
                   ))}
                   {(!serverInfo || serverInfo.ips.length === 0) && (
-                    <p className="text-[10px] text-zinc-500 italic">No LAN IP detected. Check router connection.</p>
+                    <p className="text-[10px] text-zinc-500 italic">No LAN IP detected.</p>
                   )}
                 </div>
               </div>
 
-              <div className="glass p-6 rounded-[2rem] border-zinc-800/50 space-y-4">
+              <div className="glass p-6 rounded-[2rem] border-emerald-500/20 bg-emerald-500/5 space-y-4">
                 <div className="flex items-center gap-3 text-emerald-400">
                   <Wifi size={20} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Active Connections</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Active Links</span>
                 </div>
                 <div className="flex items-end gap-3">
-                  <p className="text-4xl font-bold font-mono">{onlineUsers.length}</p>
-                  <p className="text-xs text-zinc-500 mb-1">Devices Linked</p>
+                  <p className="text-5xl font-black font-mono text-emerald-500">{onlineUsers.length}</p>
+                  <p className="text-[10px] text-zinc-400 mb-2 uppercase font-bold">Devices</p>
                 </div>
               </div>
 
               <div className="glass p-6 rounded-[2rem] border-zinc-800/50 space-y-4">
                 <div className="flex items-center gap-3 text-zinc-400">
                   <Terminal size={20} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">System Load</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Hub Logic</span>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-zinc-500">CPU Usage</span>
-                    <span className="text-emerald-500 font-mono">1.2%</span>
+                  <div className="flex justify-between items-center text-[10px] font-bold">
+                    <span className="text-zinc-500 uppercase tracking-widest">Processing</span>
+                    <span className="text-emerald-500 font-mono">STABLE</span>
                   </div>
-                  <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
-                    <div className="h-full w-[1.2%] bg-emerald-500" />
+                  <div className="flex justify-between items-center text-[10px] font-bold">
+                    <span className="text-zinc-500 uppercase tracking-widest">Router</span>
+                    <span className="text-zinc-400 font-mono">LAN ONLY</span>
                   </div>
+                </div>
+              </div>
+
+              <div className="glass p-6 rounded-[2rem] border-zinc-800/50 space-y-4">
+                <div className="flex items-center gap-3 text-zinc-400">
+                  <Radio size={20} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Signaling</span>
+                </div>
+                <div className="space-y-2">
+                   <div className="flex items-center gap-2">
+                     <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                     <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">WebRTC Relay</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                     <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Socket.IO v4</span>
+                   </div>
                 </div>
               </div>
             </div>

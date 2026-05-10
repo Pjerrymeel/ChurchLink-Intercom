@@ -77,37 +77,65 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
         >
           {/* Logo Section */}
           <div className="text-center space-y-4">
-            <div className="h-20 w-20 bg-blue-600 rounded-[2rem] mx-auto flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
+            <div className="h-20 w-20 bg-blue-600 rounded-[2rem] mx-auto flex items-center justify-center text-white shadow-xl shadow-blue-600/30 relative">
               <Radio size={40} strokeWidth={2.5} />
+              {window.electron && (
+                <div className="absolute -top-2 -right-2 bg-emerald-500 text-zinc-950 text-[8px] font-black px-2 py-1 rounded-full border-2 border-zinc-950 uppercase tracking-tighter">
+                  HOST
+                </div>
+              )}
             </div>
             <div className="space-y-1">
               <h1 className="text-3xl font-black tracking-tight text-white uppercase italic">
                 Church<span className="text-blue-500">Link</span>
               </h1>
-              <p className="text-zinc-500 text-sm font-medium tracking-wide">Technical Production Intercom</p>
+              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em]">{window.electron ? 'Master Intercom Hub' : 'User Terminal'}</p>
             </div>
           </div>
 
           <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
           {/* Server Info (Host only) */}
-          {localIps.length > 0 && (
-            <div className="bg-blue-600/5 rounded-2xl p-4 border border-blue-500/10 space-y-2">
-              <div className="flex items-center gap-2 text-blue-400">
-                <Globe size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Active Server IPs</span>
+          {window.electron && localIps.length > 0 && (
+            <div className="bg-blue-600/5 rounded-3xl p-6 border border-blue-500/10 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-blue-400">
+                  <Globe size={16} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Active Hub IPs</span>
+                </div>
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               </div>
-              <div className="flex flex-wrap gap-2">
+              
+              <div className="grid grid-cols-1 gap-2">
                 {localIps.map(ip => (
-                  <span key={ip} className="px-2 py-1 bg-zinc-900 rounded-lg text-[10px] font-mono text-zinc-400 border border-zinc-800">
-                    {ip}:3000
-                  </span>
+                  <div key={ip} className="flex items-center justify-between bg-zinc-900/80 rounded-xl px-4 py-3 border border-zinc-800">
+                    <span className="text-xs font-mono text-zinc-300">{ip}:3000</span>
+                    <button 
+                      onClick={() => navigator.clipboard.writeText(`${ip}:3000`)}
+                      className="text-[9px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-400"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 ))}
               </div>
-              <p className="text-[9px] text-zinc-500 italic">
-                Mobile users should use one of these IPs to connect.
+              
+              <p className="text-[9px] text-zinc-500 leading-relaxed italic text-center px-2">
+                Mobile users: Connect to one of these addresses on the same WiFi.
               </p>
             </div>
+          )}
+
+          {!window.electron && (
+             <div className="bg-zinc-900/30 rounded-2xl p-4 border border-zinc-800 flex items-center gap-4">
+               <div className="h-10 w-10 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-500">
+                 <Globe size={20} />
+               </div>
+               <div className="flex-1">
+                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Client Mode</p>
+                 <p className="text-[9px] text-zinc-600">Enter Host IP to connect</p>
+               </div>
+             </div>
           )}
 
           {/* Form */}
