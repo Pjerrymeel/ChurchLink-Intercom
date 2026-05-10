@@ -1,49 +1,23 @@
 import React from 'react';
 import { 
-  Users, 
-  Wifi, 
   Mic, 
   Radio, 
-  AlertCircle,
   Activity,
-  ArrowUpRight,
-  TrendingUp,
-  Clock,
-  ExternalLink,
   ChevronRight,
-  Megaphone
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Channel, User, Announcement } from '../../types';
+import { Channel, User } from '../../types';
+import { CHANNELS as SHARED_CHANNELS } from '../../constants';
 
-const CHANNELS: Channel[] = [
-  { id: '1', name: 'Main Tech', description: 'FOH, Lighting, Media', onlineCount: 12, activeSpeaker: 'Jeff (L1)', icon: 'monitor' },
-  { id: '2', name: 'Camera Team', description: 'Ops, Jib, Controller', onlineCount: 6, icon: 'camera' },
-  { id: '3', name: 'Livestream', description: 'Stream Monitor, Audio', onlineCount: 4, isEmergency: true, icon: 'globe' },
-  { id: '4', name: 'Worship/Stage', description: 'MD, Stage Hands', onlineCount: 15, icon: 'music' },
-];
-
-const ONLINE_USERS: User[] = [
-  { id: 'u1', name: 'Sarah Miller', role: 'Producer', status: 'online', avatar: 'SM' },
-  { id: 'u2', name: 'Mike Ross', role: 'Camera Op', status: 'online', avatar: 'MR' },
-  { id: 'u3', name: 'Jason Stat', role: 'Audio Eng', status: 'idle', avatar: 'JS' },
-  { id: 'u4', name: 'Emily Chen', role: 'Tech Lead', status: 'online', avatar: 'EC' },
-];
-
-const ANNOUNCEMENTS: Announcement[] = [
-  { id: 'a1', title: 'Sunday Run-through delayed 15min', author: 'Pryme', date: '10:30 AM', priority: 'high' },
-  { id: 'a2', title: 'New Camera 4 calibration settings', author: 'Sarah', date: '08:15 AM', priority: 'normal' },
-];
-
-const Waveform = () => {
+const Waveform = ({ active }: { active?: boolean }) => {
   return (
-    <div className="flex items-center gap-1 h-12">
+    <div className={`flex items-center gap-1 h-12 transition-opacity duration-300 ${active ? 'opacity-100' : 'opacity-20'}`}>
       {[...Array(12)].map((_, i) => (
         <motion.div
           key={i}
-          animate={{ 
+          animate={active ? { 
             height: [10, Math.random() * 40 + 10, 10], 
-          }}
+          } : { height: 10 }}
           transition={{ 
             repeat: Infinity, 
             duration: 0.5 + Math.random(),
@@ -56,7 +30,34 @@ const Waveform = () => {
   );
 };
 
-export const DashboardHome: React.FC = () => {
+interface DashboardHomeProps {
+  username: string;
+  onlineUsers: User[];
+  onChannelChange: (id: string) => void;
+  onOpenChannels: () => void;
+  currentChannelId?: string;
+}
+
+export const DashboardHome: React.FC<DashboardHomeProps> = ({ 
+  username, 
+  onlineUsers, 
+  onChannelChange, 
+  onOpenChannels,
+  currentChannelId = '1' 
+}) => {
+  // Find active speaker - strictly filtered by current channel
+  const activeSpeaker = onlineUsers.find(u => u.isSpeaking && u.channelId === currentChannelId);
+  
+  // Current active channel object
+  const activeChannel = SHARED_CHANNELS.find(c => c.id === currentChannelId) || SHARED_CHANNELS[0];
+  
+  // Channels can be fetched from server or hardcoded if they don't change often
+  // For now we'll keep them but use onlineUsers to count members in each
+  const channels: Channel[] = SHARED_CHANNELS.map(c => ({
+    ...c,
+    onlineCount: onlineUsers.filter(u => u.channelId === c.id).length
+  }));
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       {/* Hero Live Panel */}
@@ -72,32 +73,41 @@ export const DashboardHome: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Communication</p>
-                  <h2 className="text-xl font-bold">Main Tech Channel</h2>
+                  <h2 className="text-xl font-bold">{activeChannel.name} Channel</h2>
                 </div>
               </div>
               <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Transmitting</span>
+                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                  {activeSpeaker ? 'Transmitting' : 'Monitoring'}
+                </span>
               </div>
             </div>
 
             <div className="flex items-center gap-8 py-4">
-              <Waveform />
+              <Waveform active={!!activeSpeaker} />
               <div className="space-y-1">
-                <p className="text-sm font-mono text-zinc-400">Speaker Identified:</p>
-                <p className="text-lg font-bold text-emerald-400">Sarah M. (FOH Lead)</p>
+                <p className="text-sm font-mono text-zinc-400">Status:</p>
+                <p className={`text-lg font-bold transition-colors ${activeSpeaker ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                  {activeSpeaker ? `${activeSpeaker.name} speaking...` : 'CHANNEL SILENT'}
+                </p>
               </div>
             </div>
           </div>
 
           <div className="flex gap-4 relative z-10">
-            <button className="px-8 py-4 bg-zinc-100 text-zinc-950 rounded-2xl font-bold flex items-center gap-3 hover:bg-white transition-all shadow-xl shadow-white/5 active:scale-95">
+            <button 
+              className="px-8 py-4 bg-zinc-100 text-zinc-950 rounded-2xl font-bold flex items-center gap-3 hover:bg-white transition-all shadow-xl shadow-white/5 active:scale-95"
+            >
               <Mic size={20} />
               Push to Talk
             </button>
-            <button className="px-6 py-4 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-2xl font-bold flex items-center gap-3 hover:bg-zinc-800 transition-all active:scale-95">
+            <button 
+              onClick={onOpenChannels} 
+              className="px-6 py-4 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-2xl font-bold flex items-center gap-3 hover:bg-zinc-800 transition-all active:scale-95"
+            >
               <Radio size={20} />
-              Switch
+              Quick Switch
             </button>
           </div>
         </div>
@@ -143,134 +153,75 @@ export const DashboardHome: React.FC = () => {
       </section>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-        {/* Active Channels */}
-        <div className="xl:col-span-3 space-y-6">
+      <div className="grid grid-cols-1 gap-8">
+        {/* Active Users Section - Now taking full width */}
+        <div className="space-y-6">
           <div className="flex items-center justify-between px-2">
-            <h3 className="text-lg font-bold">Priority Channels</h3>
-            <button className="text-blue-500 text-xs font-bold uppercase tracking-widest hover:text-blue-400 transition-colors flex items-center gap-1">
-              View All <ArrowUpRight size={14} />
-            </button>
+            <h3 className="text-lg font-bold flex items-center gap-3">
+              Live Team 
+              <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-3 py-1 rounded-full border border-emerald-500/20 font-black tracking-widest uppercase">
+                {onlineUsers.length} MEMBERS ONLINE
+              </span>
+            </h3>
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">All Systems Nominal</span>
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {CHANNELS.map((channel) => (
-              <motion.div 
-                key={channel.id}
-                whileHover={{ y: -4 }}
-                className={`glass p-6 rounded-[2rem] border-l-4 transition-all ${
-                  channel.isEmergency ? 'border-l-red-500 neon-glow-red' : 'border-l-blue-600'
-                } group cursor-pointer`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-xl bg-zinc-950 flex items-center justify-center ${channel.isEmergency ? 'text-red-500' : 'text-zinc-400 group-hover:text-blue-500'}`}>
-                        {channel.icon === 'camera' && <Activity size={20} />}
-                        {channel.icon === 'monitor' && <Users size={20} />}
-                        {channel.icon === 'globe' && <AlertCircle size={20} />}
-                        {channel.icon === 'music' && <Radio size={20} />}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-zinc-100">{channel.name}</h4>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{channel.onlineCount} OPS ONLINE</p>
-                      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {onlineUsers.map((user) => {
+              const isUserSpeakingInCurrentChannel = user.isSpeaking && user.channelId === currentChannelId;
+              return (
+                <motion.div 
+                  key={user.id} 
+                  whileHover={{ y: -2 }}
+                  className={`glass p-4 rounded-[1.5rem] flex items-center gap-4 border transition-all cursor-pointer group ${
+                    isUserSpeakingInCurrentChannel ? 'border-emerald-500/50 bg-emerald-500/5 shadow-xl shadow-emerald-500/10' : 'border-zinc-800/50 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="relative">
+                    <div className={`h-12 w-12 rounded-2xl bg-zinc-950 border flex items-center justify-center font-bold text-sm transition-colors ${
+                      isUserSpeakingInCurrentChannel ? 'border-emerald-500 text-emerald-500' : 'border-zinc-900 text-zinc-600 group-hover:text-blue-500'
+                    }`}>
+                      {user.avatar}
                     </div>
-                    <p className="text-xs text-zinc-500 leading-relaxed max-w-[200px]">
-                      {channel.description}
+                    {isUserSpeakingInCurrentChannel && (
+                      <div className="absolute -top-1 -right-1 z-20">
+                        <div className="bg-emerald-500 rounded-full p-1 shadow-lg">
+                          <Mic size={10} className="text-white" />
+                        </div>
+                      </div>
+                    )}
+                    <div className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-zinc-950 ${
+                      user.status === 'online' ? 'bg-emerald-500' : 'bg-zinc-700'
+                    }`} />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-zinc-100 truncate">
+                        {user.name === username ? `${user.name} (Me)` : user.name}
+                      </p>
+                      {isUserSpeakingInCurrentChannel && (
+                        <span className="flex gap-0.5 items-end h-3">
+                          <motion.span animate={{ height: [4, 8, 4] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-0.5 bg-emerald-500 rounded-full" />
+                          <motion.span animate={{ height: [8, 4, 8] }} transition={{ repeat: Infinity, duration: 0.4 }} className="w-0.5 bg-emerald-500 rounded-full" />
+                          <motion.span animate={{ height: [5, 9, 5] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-0.5 bg-emerald-500 rounded-full" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider truncate mt-0.5">
+                      {user.role} • {channels.find(c => c.id === user.channelId)?.name || 'Syncing...'}
                     </p>
                   </div>
                   
-                  {channel.activeSpeaker && (
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="h-6 w-6 bg-emerald-500 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-emerald-500/20">
-                        <Mic size={12} className="text-white" />
-                      </div>
-                      <span className="text-[8px] font-bold text-emerald-500 tracking-tighter uppercase whitespace-nowrap">Live speaking</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="mt-6 flex items-center justify-between pt-4 border-t border-zinc-800/50">
-                   <div className="flex -space-x-2">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-6 w-6 rounded-full border border-zinc-950 bg-zinc-800 flex items-center justify-center text-[8px] font-bold text-zinc-500">
-                          {i + 1}
-                        </div>
-                      ))}
-                      <div className="h-6 w-6 rounded-full border border-zinc-950 bg-zinc-900 flex items-center justify-center text-[8px] font-bold text-zinc-600">
-                        +9
-                      </div>
-                   </div>
-                   <button className="text-[10px] font-bold text-zinc-400 group-hover:text-blue-500 transition-colors flex items-center gap-1">
-                      JOIN ROOM <ChevronRight size={14} />
-                   </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Status Collumn */}
-        <div className="space-y-8">
-          {/* Active Users */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold flex items-center justify-between px-1">
-              Live Team <span className="text-emerald-500 text-[10px] font-mono">{ONLINE_USERS.length} ACTIVE</span>
-            </h3>
-            <div className="space-y-2">
-              {ONLINE_USERS.map((user) => (
-                <div key={user.id} className="glass p-3 rounded-2xl flex items-center gap-3 border-transparent hover:border-zinc-800 transition-all cursor-pointer group">
-                  <div className="relative">
-                    <div className="h-10 w-10 rounded-xl bg-zinc-950 border border-zinc-900 flex items-center justify-center font-bold text-zinc-600 group-hover:text-blue-500 transition-colors">
-                      {user.avatar}
-                    </div>
-                    <div className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-zinc-950 ${
-                      user.status === 'online' ? 'bg-emerald-500' : 'bg-orange-500'
-                    }`} />
+                  <div className={`transition-colors ${isUserSpeakingInCurrentChannel ? 'text-emerald-500' : 'text-zinc-800 group-hover:text-zinc-600'}`}>
+                    <ChevronRight size={16} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-zinc-100 truncate">{user.name}</p>
-                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{user.role}</p>
-                  </div>
-                  <TrendingUp size={12} className="text-zinc-800 transition-colors group-hover:text-blue-500/50" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Announcements */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold px-1 flex items-center gap-2">
-              <Megaphone size={16} className="text-orange-500" />
-              Latest Intel
-            </h3>
-            <div className="space-y-3">
-              {ANNOUNCEMENTS.map((ann) => (
-                <div key={ann.id} className="bg-zinc-950/50 border border-zinc-900 p-4 rounded-2xl space-y-2 relative overflow-hidden group">
-                  {ann.priority === 'high' && (
-                    <div className="absolute top-0 right-0 h-10 w-10 bg-red-500/10 rotate-45 translate-x-5 -translate-y-5" />
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${
-                      ann.priority === 'high' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/10 text-blue-500'
-                    }`}>
-                      {ann.priority}
-                    </span>
-                    <span className="text-[10px] text-zinc-600 font-mono flex items-center gap-1">
-                      <Clock size={10} /> {ann.date}
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-zinc-200 leading-normal">{ann.title}</h4>
-                  <p className="text-[10px] text-zinc-500 flex items-center gap-1">
-                    Posted by <span className="text-blue-500 font-bold">{ann.author}</span>
-                  </p>
-                </div>
-              ))}
-            </div>
-            <button className="w-full py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[10px] font-bold text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all uppercase tracking-widest">
-              Broadcast System Message
-            </button>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>

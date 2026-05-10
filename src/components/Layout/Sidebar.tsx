@@ -19,13 +19,15 @@ interface SidebarProps {
   onTabChange: (tab: Tab) => void;
   isCollapsed: boolean;
   setIsCollapsed: (v: boolean) => void;
+  onLogout: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
   currentTab, 
   onTabChange,
   isCollapsed,
-  setIsCollapsed
+  setIsCollapsed,
+  onLogout
 }) => {
   const menuItems: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -111,7 +113,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        <button className="w-full flex items-center gap-4 py-3 px-4 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-400/5 transition-all">
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center gap-4 py-3 px-4 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-400/5 transition-all"
+        >
           <LogOut size={22} />
           {!isCollapsed && <span className="text-sm font-semibold">Sign Out</span>}
         </button>

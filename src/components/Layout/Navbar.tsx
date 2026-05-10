@@ -8,7 +8,12 @@ import {
   Signal
 } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  username: string;
+  onLogout: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ username, onLogout }) => {
   return (
     <header className="fixed top-0 right-0 left-0 lg:left-64 h-16 glass z-40 px-6 flex items-center justify-between border-b border-zinc-800">
       <div className="flex items-center gap-6">
@@ -29,12 +34,12 @@ export const Navbar: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden sm:flex items-center gap-4 mr-4">
-          <div className="flex items-center gap-1 text-zinc-400">
+        <div className="hidden sm:flex items-center gap-4 mr-4 text-zinc-400">
+          <div className="flex items-center gap-1">
             <Signal size={14} className="text-emerald-500" />
             <span className="text-[10px] font-mono">14ms</span>
           </div>
-          <div className="flex items-center gap-1 text-zinc-400">
+          <div className="flex items-center gap-1">
             <Activity size={14} className="text-blue-500" />
             <span className="text-[10px] font-mono">98% UP</span>
           </div>
@@ -47,15 +52,18 @@ export const Navbar: React.FC = () => {
         
         <div className="h-8 w-[1px] bg-zinc-800 mx-2" />
         
-        <button className="flex items-center gap-3 pl-2 group">
+        <div className="flex items-center gap-3 pl-2 group">
           <div className="text-right hidden xs:block">
-            <p className="text-xs font-bold text-zinc-100 group-hover:text-blue-400 transition-colors">Pryme Pida</p>
-            <p className="text-[10px] text-zinc-500 font-medium">Technical Director</p>
+            <p className="text-xs font-bold text-zinc-100 group-hover:text-blue-400 transition-colors">{username}</p>
+            <p className="text-[10px] text-zinc-500 font-medium">Production Team</p>
           </div>
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg border border-white/10">
-            PD
-          </div>
-        </button>
+          <button 
+            onClick={onLogout}
+            className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg border border-white/10 hover:scale-105 transition-transform"
+          >
+            {username.charAt(0).toUpperCase()}
+          </button>
+        </div>
       </div>
     </header>
   );

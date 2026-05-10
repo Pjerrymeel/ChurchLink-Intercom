@@ -3,10 +3,11 @@ export type Tab = 'dashboard' | 'channels' | 'messages' | 'help' | 'settings' | 
 export interface User {
   id: string;
   name: string;
-  role: 'Tech Lead' | 'Camera Op' | 'Producer' | 'Audio Eng';
+  role: 'Tech Lead' | 'Camera Op' | 'Producer' | 'Audio Eng' | 'Technical Director';
   status: 'online' | 'idle' | 'offline';
   channelId?: string;
   avatar: string;
+  isSpeaking?: boolean;
 }
 
 export interface Channel {
@@ -16,15 +17,8 @@ export interface Channel {
   icon: string;
   onlineCount: number;
   activeSpeaker?: string;
+  activeSpeakerId?: string;
   isEmergency?: boolean;
-}
-
-export interface Announcement {
-  id: string;
-  title: string;
-  author: string;
-  date: string;
-  priority: 'high' | 'normal';
 }
 
 export interface FAQItem {
