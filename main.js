@@ -17,16 +17,18 @@ function startServer() {
   
   console.log(`Starting server from: ${serverPath}`);
   
-  // Try to use bundled tsx if possible, fallback to npx
-  const args = [serverPath];
-  let command = 'npx';
-  let finalArgs = ['tsx', ...args];
+  let command;
+  let finalArgs;
 
   if (app.isPackaged) {
-    // In packaged app, node_modules is usually in resources/app/
-    // or we can try to use node to run tsx
+    // In packaged app, we use the bundled node version to run tsx
+    const tsxPath = path.join(__dirname, 'node_modules', 'tsx', 'dist', 'cli.mjs');
     command = process.execPath;
-    finalArgs = [tsxPath, ...args];
+    finalArgs = [tsxPath, serverPath];
+  } else {
+    // In development, use npx
+    command = 'npx';
+    finalArgs = ['tsx', serverPath];
   }
   
   console.log(`Executing: ${command} ${finalArgs.join(' ')}`);

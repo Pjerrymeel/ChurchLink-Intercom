@@ -25,11 +25,11 @@ export const Navbar: React.FC<NavbarProps> = ({ username, onLogout, socketConnec
         <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border transition-colors ${socketConnected ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
           <div className={`h-2 w-2 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
           <span className={`text-[10px] font-bold uppercase tracking-widest ${socketConnected ? 'text-emerald-500' : 'text-red-500'}`}>
-            {socketConnected ? 'Live Server' : 'Disconnected'}
+            {socketConnected ? 'Central Hub Linked' : 'Searching for Server...'}
           </span>
           {serverInfo && socketConnected && (
             <span className="text-[10px] text-zinc-500 font-mono ml-1">
-              {serverInfo.ips[0] || 'localhost'}
+              ({serverInfo.ips[0] || 'localhost'})
             </span>
           )}
         </div>

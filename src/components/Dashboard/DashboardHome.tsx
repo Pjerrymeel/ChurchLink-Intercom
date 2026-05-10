@@ -4,9 +4,13 @@ import {
   Radio, 
   Activity,
   ChevronRight,
+  Server,
+  Terminal,
+  Globe,
+  Wifi
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Channel, User } from '../../types';
+import { Channel, User, ServerInfo } from '../../types';
 import { CHANNELS as SHARED_CHANNELS } from '../../constants';
 
 const Waveform = ({ active }: { active?: boolean }) => {
@@ -36,6 +40,7 @@ interface DashboardHomeProps {
   onChannelChange: (id: string) => void;
   onOpenChannels: () => void;
   currentChannelId?: string;
+  serverInfo: ServerInfo | null;
 }
 
 export const DashboardHome: React.FC<DashboardHomeProps> = ({ 
@@ -43,8 +48,10 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   onlineUsers, 
   onChannelChange, 
   onOpenChannels,
-  currentChannelId = '1' 
+  currentChannelId = '1',
+  serverInfo
 }) => {
+  const isHost = !!window.electron;
   // Find active speaker - strictly filtered by current channel
   const activeSpeaker = onlineUsers.find(u => u.isSpeaking && u.channelId === currentChannelId);
   
@@ -153,9 +160,77 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       </section>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 gap-8">
-        {/* Active Users Section - Now taking full width */}
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Server Admin Panel - Host Only */}
+        {isHost && (
+          <div className="lg:col-span-4 space-y-6">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-lg font-bold flex items-center gap-3">
+                Intercom Hub Control
+                <span className="bg-blue-500/10 text-blue-500 text-[10px] px-3 py-1 rounded-full border border-blue-500/20 font-black tracking-widest uppercase">
+                  SERVER ACTIVE
+                </span>
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="glass p-6 rounded-[2rem] border-blue-500/20 bg-blue-500/5 space-y-4">
+                <div className="flex items-center gap-3 text-blue-400">
+                  <Globe size={20} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">LAN Access Points</span>
+                </div>
+                <div className="space-y-2">
+                  {serverInfo?.ips.map(ip => (
+                    <div key={ip} className="flex items-center justify-between bg-zinc-950/50 border border-zinc-800 p-3 rounded-xl">
+                      <span className="text-xs font-mono text-zinc-300">{ip}:3000</span>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${ip}:3000`);
+                        }}
+                        className="text-[9px] font-bold text-blue-500 hover:text-blue-400 uppercase tracking-widest"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ))}
+                  {(!serverInfo || serverInfo.ips.length === 0) && (
+                    <p className="text-[10px] text-zinc-500 italic">No LAN IP detected. Check router connection.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="glass p-6 rounded-[2rem] border-zinc-800/50 space-y-4">
+                <div className="flex items-center gap-3 text-emerald-400">
+                  <Wifi size={20} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Active Connections</span>
+                </div>
+                <div className="flex items-end gap-3">
+                  <p className="text-4xl font-bold font-mono">{onlineUsers.length}</p>
+                  <p className="text-xs text-zinc-500 mb-1">Devices Linked</p>
+                </div>
+              </div>
+
+              <div className="glass p-6 rounded-[2rem] border-zinc-800/50 space-y-4">
+                <div className="flex items-center gap-3 text-zinc-400">
+                  <Terminal size={20} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">System Load</span>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-zinc-500">CPU Usage</span>
+                    <span className="text-emerald-500 font-mono">1.2%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                    <div className="h-full w-[1.2%] bg-emerald-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Active Users Section */}
+        <div className="lg:col-span-4 space-y-6">
           <div className="flex items-center justify-between px-2">
             <h3 className="text-lg font-bold flex items-center gap-3">
               Live Team 

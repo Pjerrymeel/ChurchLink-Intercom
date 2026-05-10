@@ -472,6 +472,7 @@ export default function App() {
                 onChannelChange={changeChannel} 
                 onOpenChannels={() => setCurrentTab('channels')}
                 currentChannelId={currentUser?.channelId}
+                serverInfo={serverInfo}
               />;
             case 'help':
               return <HelpTab />;
@@ -576,6 +577,7 @@ export default function App() {
                 onChannelChange={changeChannel}
                 onOpenChannels={() => setCurrentTab('channels')}
                 currentChannelId={currentUser?.channelId} 
+                serverInfo={serverInfo}
               />;
           }
         })()}
