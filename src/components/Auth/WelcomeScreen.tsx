@@ -14,10 +14,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [shouldShake, setShouldShake] = useState(false);
+  const [localIps, setLocalIps] = useState<string[]>([]);
 
   useEffect(() => {
     const savedIp = localStorage.getItem('churchlink_server_ip');
     if (savedIp) setServerIp(savedIp);
+    
+    // Detect local IPs if in Electron
+    if (window.electron && window.electron.getLocalIPs) {
+      setLocalIps(window.electron.getLocalIPs());
+    }
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,6 +89,26 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
           </div>
 
           <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+
+          {/* Server Info (Host only) */}
+          {localIps.length > 0 && (
+            <div className="bg-blue-600/5 rounded-2xl p-4 border border-blue-500/10 space-y-2">
+              <div className="flex items-center gap-2 text-blue-400">
+                <Globe size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Active Server IPs</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {localIps.map(ip => (
+                  <span key={ip} className="px-2 py-1 bg-zinc-900 rounded-lg text-[10px] font-mono text-zinc-400 border border-zinc-800">
+                    {ip}:3000
+                  </span>
+                ))}
+              </div>
+              <p className="text-[9px] text-zinc-500 italic">
+                Mobile users should use one of these IPs to connect.
+              </p>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">

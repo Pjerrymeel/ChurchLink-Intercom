@@ -12,16 +12,33 @@ let tray;
 let serverProcess;
 
 function startServer() {
-  // Use tsx to run the server.ts file in development
-  // In production, we assume tsx or at least node can execute our server file
   const serverPath = path.join(__dirname, 'server.ts');
+  const tsxPath = path.join(__dirname, 'node_modules', 'tsx', 'dist', 'cli.mjs');
   
   console.log(`Starting server from: ${serverPath}`);
   
-  serverProcess = spawn('npx', ['tsx', serverPath], {
+  // Try to use bundled tsx if possible, fallback to npx
+  const args = [serverPath];
+  let command = 'npx';
+  let finalArgs = ['tsx', ...args];
+
+  if (app.isPackaged) {
+    // In packaged app, node_modules is usually in resources/app/
+    // or we can try to use node to run tsx
+    command = process.execPath;
+    finalArgs = [tsxPath, ...args];
+  }
+  
+  console.log(`Executing: ${command} ${finalArgs.join(' ')}`);
+
+  serverProcess = spawn(command, finalArgs, {
     cwd: __dirname,
     shell: true,
-    env: { ...process.env, NODE_ENV: 'production' }
+    env: { 
+      ...process.env, 
+      NODE_ENV: 'production',
+      PORT: '3000'
+    }
   });
 
   serverProcess.stdout.on('data', (data) => {

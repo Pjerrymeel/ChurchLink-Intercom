@@ -18,7 +18,7 @@ async function startServer() {
     },
   });
 
-  const PORT = 3000;
+  const PORT = parseInt(process.env.PORT || "3000");
 
   // Real-time user state
   let users: any[] = [];
@@ -129,9 +129,12 @@ async function startServer() {
     const nets = os.networkInterfaces();
     const ips: string[] = [];
     for (const name of Object.keys(nets)) {
-      for (const net of nets[name]!) {
-        if (net.family === 'IPv4' && !net.internal) {
-          ips.push(net.address);
+      const netList = nets[name];
+      if (netList) {
+        for (const net of netList) {
+          if (net.family === 'IPv4' && !net.internal) {
+            ips.push(net.address);
+          }
         }
       }
     }
