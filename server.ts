@@ -121,6 +121,10 @@ async function startServer() {
   });
 
   // API Routes
+  app.get("/api/ping", (req, res) => {
+    res.send("pong");
+  });
+
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
@@ -184,11 +188,14 @@ async function startServer() {
     const nets = os.networkInterfaces();
     let foundIP = false;
     for (const name of Object.keys(nets)) {
-      for (const net of nets[name]!) {
-        // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
-        if (net.family === 'IPv4' && !net.internal) {
-          console.log(`➤ http://${net.address}:${PORT}`);
-          foundIP = true;
+      const netList = nets[name];
+      if (netList) {
+        for (const net of netList) {
+          // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+          if (net.family === 'IPv4' && !net.internal) {
+            console.log(`➤ http://${net.address}:${PORT}`);
+            foundIP = true;
+          }
         }
       }
     }

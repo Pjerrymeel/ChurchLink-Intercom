@@ -143,6 +143,8 @@ export default function App() {
       
       // Determine connection URL
       let connectionUrl = undefined;
+      const currentHostname = window.location.hostname;
+      const currentProtocol = window.location.protocol;
       
       if (manualIp) {
         // High priority: Manual IP
@@ -150,27 +152,31 @@ export default function App() {
       } else if (window.electron) { 
         // We are in Electron, default to local server
         connectionUrl = 'http://localhost:3000';
-      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      } else if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
         // We are on a browser on the same machine
         connectionUrl = 'http://localhost:3000';
-      } else if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      } else if (currentProtocol.includes('http')) {
         // Standard browser connection
         connectionUrl = window.location.origin;
       }
       
-      // If we are on Mobile/APK and have no manual IP, we are stuck until user enters one.
-      // But we can try to use standard socket.io discovery if location.origin isn't capacitor://
-      if (window.location.protocol.includes('capacitor') && !manualIp) {
-         console.warn("Running in Mobile/Capacitor without manual IP. Connection will likely fail until IP is set.");
+      // Special check for mobile environments (Capacitor/Cordova)
+      // If we are on mobile and have no manual IP, we show the setup screen immediately
+      const isMobileEnv = currentProtocol.includes('capacitor') || currentProtocol.includes('file') || currentProtocol.includes('android');
+      
+      if (isMobileEnv && !manualIp) {
+         console.warn("Mobile environment detected without manual IP. Expecting connection to fail.");
+         setTimeout(() => setShowErrorOverlay(true), 100);
       }
 
-      console.log(`Initializing socket connection to: ${connectionUrl || 'automatic (socket.io default)'}`);
+      console.log(`📡 Connecting to: ${connectionUrl || 'automatic'} | Env: ${isMobileEnv ? 'Mobile' : 'Web/Desktop'}`);
       
       const socket = io(connectionUrl as any, {
         transports: ['websocket'],
         upgrade: false,
-        reconnectionAttempts: 15,
-        reconnectionDelay: 2000
+        reconnectionAttempts: 25,
+        reconnectionDelay: 1000,
+        timeout: 5000
       });
       socketRef.current = socket;
 
@@ -431,13 +437,39 @@ export default function App() {
                   <div className="space-y-4">
                     <div className="text-left space-y-1.5">
                       <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Server Address</label>
-                      <input 
-                        type="text"
-                        value={tempIp}
-                        onChange={(e) => setTempIp(e.target.value)}
-                        placeholder="e.g. 192.168.1.100"
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-zinc-700"
-                      />
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={tempIp}
+                          onChange={(e) => setTempIp(e.target.value)}
+                          placeholder="e.g. 192.168.1.100"
+                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-zinc-700"
+                        />
+                        <button 
+                          onClick={async () => {
+                            const trimmedIp = tempIp.trim();
+                            if (!trimmedIp) return;
+                            const protocol = trimmedIp.startsWith('http') ? '' : 'http://';
+                            const port = trimmedIp.includes(':') ? '' : ':3000';
+                            const testUrl = `${protocol}${trimmedIp}${port}/api/ping`;
+                            
+                            try {
+                              const res = await fetch(testUrl, { signal: AbortSignal.timeout(3000) });
+                              const text = await res.text();
+                              if (text === 'pong') {
+                                alert("✅ Success! Connection verified.");
+                              } else {
+                                alert("⚠️ Server reached, but response was unexpected.");
+                              }
+                            } catch (e) {
+                              alert("❌ Failed: Could not reach server at this IP.");
+                            }
+                          }}
+                          className="px-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-[10px] font-bold transition-all text-zinc-400 uppercase tracking-widest"
+                        >
+                          Ping
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
