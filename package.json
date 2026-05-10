@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "start": "electron .",
+    "start": "tsx server.ts",
     "dist": "electron-builder --win",
     "electron:dev": "electron .",
     "electron:build": "npm run build && electron-builder",
