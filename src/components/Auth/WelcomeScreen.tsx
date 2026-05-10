@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Radio, Mic, ChevronRight, User, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Radio, Mic, ChevronRight, User, Lock, Settings, Globe } from 'lucide-react';
 
 interface WelcomeScreenProps {
   onJoin: (name: string) => void;
@@ -9,9 +9,16 @@ interface WelcomeScreenProps {
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [serverIp, setServerIp] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [shouldShake, setShouldShake] = useState(false);
+
+  useEffect(() => {
+    const savedIp = localStorage.getItem('churchlink_server_ip');
+    if (savedIp) setServerIp(savedIp);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +34,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
       setError('Incorrect password. Access denied.');
       triggerShake();
       return;
+    }
+
+    if (serverIp) {
+      localStorage.setItem('churchlink_server_ip', serverIp);
+    } else {
+      localStorage.removeItem('churchlink_server_ip');
     }
 
     setIsLoading(true);
@@ -129,6 +142,49 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Advanced Settings */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest flex items-center gap-1.5 hover:text-blue-500 transition-colors"
+                >
+                  <Settings size={12} />
+                  Advanced: Server Settings
+                </button>
+                
+                <AnimatePresence>
+                  {showAdvanced && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-2 pt-4"
+                    >
+                      <label htmlFor="ip" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
+                        Manual Server IP (LAN)
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors">
+                          <Globe size={18} />
+                        </div>
+                        <input
+                          id="ip"
+                          type="text"
+                          placeholder="e.g. 192.168.1.15"
+                          className="w-full bg-zinc-950/30 border border-zinc-800/50 rounded-xl py-3 pl-11 pr-4 text-zinc-300 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 transition-all text-sm"
+                          value={serverIp}
+                          onChange={(e) => setServerIp(e.target.value)}
+                        />
+                      </div>
+                      <p className="text-[9px] text-zinc-700 italic ml-1">
+                        Only needed if the mobile app cannot find the central server automatically.
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 

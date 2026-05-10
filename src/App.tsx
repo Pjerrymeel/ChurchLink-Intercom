@@ -123,7 +123,10 @@ export default function App() {
     };
 
     if (username) {
-      const socket = io({
+      const manualIp = localStorage.getItem('churchlink_server_ip');
+      const connectionUrl = manualIp ? (manualIp.startsWith('http') ? manualIp : `http://${manualIp}:3000`) : undefined;
+      
+      const socket = io(connectionUrl, {
         transports: ['websocket'],
         upgrade: false
       });
