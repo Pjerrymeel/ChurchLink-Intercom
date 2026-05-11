@@ -25,9 +25,9 @@ export const Navbar: React.FC<NavbarProps> = ({ username, onLogout, socketConnec
         <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border transition-colors ${socketConnected ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
           <div className={`h-2 w-2 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
           <span className={`text-[10px] font-bold uppercase tracking-widest ${socketConnected ? 'text-emerald-500' : 'text-red-500'}`}>
-            {socketConnected ? 'Central Hub Linked' : 'Searching for Server...'}
+            {socketConnected ? (!!window.electron ? 'Master Hub Online' : 'Linked to Hub') : (!!window.electron ? 'Core Hub Initializing...' : 'Searching for Hub...')}
           </span>
-          {serverInfo && socketConnected && (
+          {serverInfo && socketConnected && !window.electron && (
             <span className="text-[10px] text-zinc-500 font-mono ml-1">
               ({serverInfo.ips[0] || 'localhost'})
             </span>
@@ -69,8 +69,8 @@ export const Navbar: React.FC<NavbarProps> = ({ username, onLogout, socketConnec
             <p className="text-[10px] text-zinc-500 font-medium">Internal Comms</p>
           </div>
           <button 
-            onClick={onLogout}
-            className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg border border-white/10 hover:scale-105 transition-transform"
+            onClick={!!window.electron ? undefined : onLogout}
+            className={`h-9 w-9 rounded-xl flex items-center justify-center font-bold text-white shadow-lg border border-white/10 hover:scale-105 transition-transform ${!!window.electron ? 'bg-gradient-to-br from-emerald-500 to-teal-600 cursor-default shadow-emerald-500/10' : 'bg-gradient-to-br from-blue-500 to-indigo-600'}`}
           >
             {username.charAt(0).toUpperCase()}
           </button>

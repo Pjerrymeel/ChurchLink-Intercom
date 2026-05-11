@@ -115,13 +115,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        <button 
-          onClick={onLogout}
-          className="w-full flex items-center gap-4 py-3 px-4 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-400/5 transition-all"
-        >
-          <LogOut size={22} />
-          {!isCollapsed && <span className="text-sm font-semibold">Sign Out</span>}
-        </button>
+        {!window.electron && (
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center gap-4 py-3 px-4 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-400/5 transition-all"
+          >
+            <LogOut size={22} />
+            {!isCollapsed && <span className="text-sm font-semibold">Sign Out</span>}
+          </button>
+        )}
       </div>
 
       <button 

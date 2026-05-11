@@ -213,36 +213,32 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               </div>
 
               <div className="glass p-6 rounded-[2rem] border-zinc-800/50 space-y-4">
+                <div className="flex items-center gap-3 text-emerald-400">
+                  <Radio size={20} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Active Corridors</span>
+                </div>
+                <div className="flex items-end gap-3">
+                  <p className="text-5xl font-black font-mono text-emerald-500">
+                    {new Set(onlineUsers.map(u => u.channelId)).size}
+                  </p>
+                  <p className="text-[10px] text-zinc-400 mb-2 uppercase font-bold">Rooms</p>
+                </div>
+              </div>
+
+              <div className="glass p-6 rounded-[2rem] border-zinc-800/50 space-y-4">
                 <div className="flex items-center gap-3 text-zinc-400">
                   <Terminal size={20} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Hub Logic</span>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-zinc-500 uppercase tracking-widest">Processing</span>
-                    <span className="text-emerald-500 font-mono">STABLE</span>
+                    <span className="text-zinc-500 uppercase tracking-widest">Router</span>
+                    <span className="text-emerald-500 font-mono">READY</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-zinc-500 uppercase tracking-widest">Router</span>
-                    <span className="text-zinc-400 font-mono">LAN ONLY</span>
+                    <span className="text-zinc-500 uppercase tracking-widest">LAN Scope</span>
+                    <span className="text-zinc-400 font-mono">BROADCASTING</span>
                   </div>
-                </div>
-              </div>
-
-              <div className="glass p-6 rounded-[2rem] border-zinc-800/50 space-y-4">
-                <div className="flex items-center gap-3 text-zinc-400">
-                  <Radio size={20} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Signaling</span>
-                </div>
-                <div className="space-y-2">
-                   <div className="flex items-center gap-2">
-                     <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-                     <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">WebRTC Relay</span>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                     <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Socket.IO v4</span>
-                   </div>
                 </div>
               </div>
             </div>

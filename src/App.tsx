@@ -304,11 +304,17 @@ export default function App() {
     // Check for username and login status
     const storedUsername = localStorage.getItem('churchlink_username');
     const loginStatus = localStorage.getItem('churchlink_loginStatus');
-    if (storedUsername && loginStatus === 'true') {
+    
+    if (isHost) {
+      // EXE ALWAYS logins as Master Hub automatically
+      setUsername('Master Hub');
+      localStorage.setItem('churchlink_username', 'Master Hub');
+      localStorage.setItem('churchlink_loginStatus', 'true');
+    } else if (storedUsername && loginStatus === 'true') {
       setUsername(storedUsername);
     }
     setIsAuthReady(true);
-  }, []);
+  }, [isHost]);
 
   const completeOnboarding = () => {
     localStorage.setItem('churchlink_onboarding_complete', 'true');
