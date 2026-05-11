@@ -49,11 +49,9 @@ export default function App() {
   
   useEffect(() => {
     let timer: any;
-    if (!socketConnected) {
-      // Give the Host (EXE) more time to start its internal engine (10s) 
-      // compared to a Client (3s)
-      const timeout = isHost ? 10000 : 3000;
-      timer = setTimeout(() => setShowErrorOverlay(true), timeout);
+    if (!socketConnected && !isHost) {
+      // Only show error overlay for CLIENTS (non-EXE)
+      timer = setTimeout(() => setShowErrorOverlay(true), 3000);
     } else {
       setShowErrorOverlay(false);
     }
@@ -655,9 +653,9 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Global Connection Overlay */}
+      {/* Global Connection Overlay - CLIENT ONLY */}
       <AnimatePresence>
-        {showErrorOverlay && (
+        {!isHost && showErrorOverlay && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -665,45 +663,38 @@ export default function App() {
             className="fixed inset-0 z-[250] bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-6"
           >
             <div className="max-w-md w-full glass p-8 rounded-[2.5rem] border-red-500/20 text-center space-y-6 shadow-2xl">
-              <div className={`h-16 w-16 rounded-full mx-auto flex items-center justify-center ${isHost && !socketConnected ? 'bg-blue-500/10 text-blue-500' : 'bg-red-500/10 text-red-500'}`}>
-                {isHost && !socketConnected ? <RefreshCw size={32} className="animate-spin" /> : <WifiOff size={32} />}
+              <div className="h-16 w-16 bg-red-500/10 rounded-full mx-auto flex items-center justify-center text-red-500">
+                <WifiOff size={32} />
               </div>
               
               {!isChangingServer ? (
                 <>
                   <div className="space-y-4">
-                    <h2 className={`text-xl font-bold ${isHost && !socketConnected ? 'text-blue-100' : 'text-red-100'}`}>
-                      {isHost ? (socketConnected ? "Hub Active" : "Initializing Hub Engine") : "Host Server Not Found"}
+                    <h2 className="text-xl font-bold text-red-100">
+                      Host Server Not Found
                     </h2>
                     
                     <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800 text-left space-y-3">
-                      {isHost ? (
+                      <div className="space-y-3">
                         <p className="text-zinc-400 text-xs leading-relaxed">
-                          The <span className="text-blue-400 font-bold uppercase tracking-widest text-[10px]">Intercom Engine (Hub)</span> is initializing. 
-                          If this takes too long, please check if port 3000 is blocked by another application.
+                          This <span className="text-emerald-400 font-bold uppercase tracking-widest text-[10px]">Client Terminal</span> cannot reach the 
+                          <span className="text-blue-400 font-bold uppercase tracking-widest text-[10px]"> Hub PC</span>.
                         </p>
-                      ) : (
-                        <div className="space-y-3">
-                          <p className="text-zinc-400 text-xs leading-relaxed">
-                            This <span className="text-emerald-400 font-bold uppercase tracking-widest text-[10px]">Client</span> cannot reach the 
-                            <span className="text-blue-400 font-bold uppercase tracking-widest text-[10px]"> Host PC</span>.
-                          </p>
-                          <ul className="text-[10px] space-y-2 text-zinc-500 font-medium">
-                            <li className="flex items-start gap-2">
-                              <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
-                              Ensure the Host PC EXE is open and running.
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
-                              Both devices must be on the SAME WiFi.
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
-                              Enter the Host IP address on your mobile device.
-                            </li>
-                          </ul>
-                        </div>
-                      )}
+                        <ul className="text-[10px] space-y-2 text-zinc-500 font-medium">
+                          <li className="flex items-start gap-2">
+                            <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
+                            Ensure the Hub PC (Windows EXE) is running.
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
+                            Connect both devices to the same WiFi.
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
+                            Enter the Hub IP address below.
+                          </li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                   
@@ -715,17 +706,15 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {!isHost && (
-                      <button 
-                        onClick={() => setIsChangingServer(true)}
-                        className="bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
-                      >
-                        Change IP
-                      </button>
-                    )}
+                    <button 
+                      onClick={() => setIsChangingServer(true)}
+                      className="bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
+                    >
+                      Change IP
+                    </button>
                     <button 
                       onClick={() => window.location.reload()}
-                      className={`bg-blue-600/20 border border-blue-500/30 text-blue-400 py-3 rounded-xl text-[10px] font-bold hover:bg-blue-600/30 transition-all uppercase tracking-widest ${isHost ? 'col-span-2' : ''}`}
+                      className="bg-blue-600/20 border border-blue-500/30 text-blue-400 py-3 rounded-xl text-[10px] font-bold hover:bg-blue-600/30 transition-all uppercase tracking-widest"
                     >
                       Refresh
                     </button>
@@ -734,15 +723,15 @@ export default function App() {
               ) : (
                 <>
                   <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-blue-100">Configure Host IP</h2>
+                    <h2 className="text-xl font-bold text-blue-100">Configure Hub IP</h2>
                     <p className="text-zinc-500 text-sm">
-                      Enter the IP of the Windows Host PC.
+                      Enter the IP of the Windows Hub PC.
                     </p>
                   </div>
 
                   <div className="space-y-4">
                     <div className="text-left space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Host Address</label>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Hub Address</label>
                       <div className="flex gap-2">
                         <input 
                           type="text"

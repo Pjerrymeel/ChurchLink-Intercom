@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Radio, Mic, ChevronRight, User, Lock, Settings, Globe } from 'lucide-react';
+import { Radio, Mic, ChevronRight, User, Lock, Settings, Globe, Server } from 'lucide-react';
 
 interface WelcomeScreenProps {
   onJoin: (name: string) => void;
@@ -104,42 +104,52 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
               )}
             </div>
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tight text-white uppercase italic">
+              <h1 className="text-3xl font-black tracking-tight text-white uppercase italic text-center">
                 Church<span className="text-blue-500">Link</span>
               </h1>
-              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em]">{window.electron ? 'Master Intercom Hub' : 'User Terminal'}</p>
+              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] text-center">
+                {window.electron ? 'Master Hub (Host Mode)' : 'Client Terminal'}
+              </p>
             </div>
           </div>
 
           <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
-          {/* Server Info (Host only) */}
-          {window.electron && localIps.length > 0 && (
-            <div className="bg-blue-600/5 rounded-3xl p-6 border border-blue-500/10 space-y-4">
+          {/* Hub Status (Host only) */}
+          {window.electron && (
+            <div className="bg-emerald-500/5 rounded-3xl p-6 border border-emerald-500/10 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-blue-400">
-                  <Globe size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Active Hub IPs</span>
+                <div className="flex items-center gap-2 text-emerald-400">
+                  <Server size={16} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Master Hub Engine</span>
                 </div>
                 <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               </div>
               
-              <div className="grid grid-cols-1 gap-2">
-                {localIps.map(ip => (
-                  <div key={ip} className="flex items-center justify-between bg-zinc-900/80 rounded-xl px-4 py-3 border border-zinc-800">
-                    <span className="text-xs font-mono text-zinc-300">{ip}:3000</span>
-                    <button 
-                      onClick={() => navigator.clipboard.writeText(`${ip}:3000`)}
-                      className="text-[9px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-400"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <p className="text-[11px] text-zinc-400 leading-relaxed font-bold uppercase tracking-widest">
+                  Status: <span className="text-emerald-500">ONLINE & BROADCASTING</span>
+                </p>
+                <div className="h-[1px] w-full bg-zinc-800" />
+                <div className="space-y-2">
+                   <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">Clients connect via:</p>
+                   {localIps.map(ip => (
+                      <div key={ip} className="flex items-center justify-between bg-zinc-950/80 rounded-xl px-4 py-2 border border-zinc-800">
+                        <span className="text-xs font-mono text-zinc-300">http://{ip}:3000</span>
+                        <button 
+                          type="button"
+                          onClick={() => navigator.clipboard.writeText(`http://${ip}:3000`)}
+                          className="text-[9px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-400"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                   ))}
+                </div>
               </div>
               
-              <p className="text-[9px] text-zinc-500 leading-relaxed italic text-center px-2">
-                Mobile users: Connect to one of these addresses on the same WiFi.
+              <p className="text-[8px] text-zinc-600 italic text-center px-2">
+                This machine is the central router. Do not close this application.
               </p>
             </div>
           )}
@@ -280,11 +290,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
               {isLoading ? (
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
-                  <span>Syncing...</span>
+                  <span>Loading Hub...</span>
                 </div>
               ) : (
                 <>
-                  Join Intercom
+                  {window.electron ? 'Start Master Hub' : 'Join Intercom'}
                   <ChevronRight size={18} />
                 </>
               )}

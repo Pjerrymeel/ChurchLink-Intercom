@@ -79,7 +79,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                   <Mic size={24} className="animate-pulse" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Communication</p>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{isHost ? 'Intercom Master Node' : 'Active Communication'}</p>
                   <h2 className="text-xl font-bold">{activeChannel.name} Channel</h2>
                 </div>
               </div>
@@ -103,18 +103,20 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           </div>
 
           <div className="flex gap-4 relative z-10">
-            <button 
-              className="px-8 py-4 bg-zinc-100 text-zinc-950 rounded-2xl font-bold flex items-center gap-3 hover:bg-white transition-all shadow-xl shadow-white/5 active:scale-95"
-            >
-              <Mic size={20} />
-              Push to Talk
-            </button>
+            {!isHost && (
+              <button 
+                className="px-8 py-4 bg-zinc-100 text-zinc-950 rounded-2xl font-bold flex items-center gap-3 hover:bg-white transition-all shadow-xl shadow-white/5 active:scale-95"
+              >
+                <Mic size={20} />
+                Push to Talk
+              </button>
+            )}
             <button 
               onClick={onOpenChannels} 
-              className="px-6 py-4 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-2xl font-bold flex items-center gap-3 hover:bg-zinc-800 transition-all active:scale-95"
+              className={`px-6 py-4 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-2xl font-bold flex items-center gap-3 hover:bg-zinc-800 transition-all active:scale-95 ${isHost ? 'w-full justify-center' : ''}`}
             >
               <Radio size={20} />
-              Quick Switch
+              {isHost ? 'Management Console' : 'Quick Switch'}
             </button>
           </div>
         </div>
