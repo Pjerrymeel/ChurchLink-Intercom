@@ -21,7 +21,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ username, onLogout, socketConnected, serverInfo, isHost = false }) => {
   return (
-    <header className="fixed top-0 right-0 left-0 lg:left-64 h-16 glass z-40 px-6 flex items-center justify-between border-b border-zinc-800">
+    <header className={`fixed top-0 right-0 left-0 h-16 glass z-40 px-6 flex items-center justify-between border-b border-zinc-800 transition-all ${isHost ? 'lg:left-0' : 'lg:left-64'}`}>
       <div className="flex items-center gap-6">
         <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border transition-colors ${socketConnected ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
           <div className={`h-2 w-2 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />

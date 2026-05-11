@@ -10,6 +10,7 @@ import { Sidebar } from './components/Layout/Sidebar';
 import { Navbar } from './components/Layout/Navbar';
 import { HelpTab } from './components/HelpTab';
 import { DashboardHome } from './components/Dashboard/DashboardHome';
+import { HubDashboard } from './components/Dashboard/HubDashboard';
 import { Onboarding } from './components/Onboarding';
 import { WelcomeScreen } from './components/Auth/WelcomeScreen';
 import { Navigation } from './components/Navigation';
@@ -37,8 +38,8 @@ export default function App() {
   const [isPTTActive, setIsPTTActive] = useState(false);
   const isHost = !!window.electron;
   const [appMode, setAppMode] = useState<'server' | 'client'>(isHost ? 'server' : 'client');
-  const [username, setUsername] = useState<string | null>(localStorage.getItem('churchlink_username') || (isHost ? 'Master Hub' : null));
-  const [hasJoined, setHasJoined] = useState(isHost || !!localStorage.getItem('churchlink_loginStatus'));
+  const [username, setUsername] = useState<string | null>(null);
+  const [hasJoined, setHasJoined] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -48,6 +49,24 @@ export default function App() {
   const [isChangingServer, setIsChangingServer] = useState(false);
   const [tempIp, setTempIp] = useState(localStorage.getItem('churchlink_server_ip') || '');
   
+  useEffect(() => {
+    // Initial Auth State Detection
+    const storedUsername = localStorage.getItem('churchlink_username');
+    const loginStatus = localStorage.getItem('churchlink_loginStatus');
+    
+    if (appMode === 'server') {
+      // EXE ONLY MODE: Always bypass login
+      setUsername('Master Hub');
+      setHasJoined(true);
+      localStorage.setItem('churchlink_username', 'Master Hub');
+      localStorage.setItem('churchlink_loginStatus', 'true');
+    } else if (storedUsername && loginStatus === 'true') {
+      setUsername(storedUsername);
+      setHasJoined(true);
+    }
+    setIsAuthReady(true);
+  }, [appMode]);
+
   useEffect(() => {
     let timer: any;
     // SERVER (EXE) NEVER shows "Host Not Found" because it IS the host
@@ -298,7 +317,7 @@ export default function App() {
   useEffect(() => {
     // Check for onboarding
     const hasCompletedOnboarding = localStorage.getItem('churchlink_onboarding_complete');
-    if (!hasCompletedOnboarding) {
+    if (!hasCompletedOnboarding && appMode === 'client') {
       setShowOnboarding(true);
     }
 
@@ -383,6 +402,18 @@ export default function App() {
   if (!isAuthReady) return null;
 
   const renderContent = () => {
+    // HOST MODE: Dedicated Server Dashboard
+    if (appMode === 'server') {
+      return (
+        <HubDashboard 
+          onlineUsers={onlineUsers}
+          serverInfo={serverInfo}
+          socketConnected={socketConnected}
+        />
+      );
+    }
+
+    // CLIENT MODE: Standard Intercom UI
     // Generate remote audio elements for users in current channel
     const otherUsersInChannel = onlineUsers.filter(u => u.channelId === currentChannelIdRef.current && u.id !== socketRef.current?.id);
     const remoteAudioElements = otherUsersInChannel.map(u => {
@@ -494,7 +525,7 @@ export default function App() {
                       <div className="space-y-2 text-center md:text-left">
                         <h2 className="text-2xl font-bold text-red-100">Elevated Access Required</h2>
                         <p className="text-red-900/60 text-sm max-w-lg">
-                          The admin panel requires a verified ChurchLink hardware key or temporary lead token. Please contact the technical director for credentials.
+                           The admin panel requires a verified ChurchLink hardware key or temporary lead token. Please contact the technical director for credentials.
                         </p>
                         <button className="mt-4 bg-red-500/20 text-red-500 font-bold py-2 px-6 rounded-xl hover:bg-red-500/30 transition-all text-xs border border-red-500/20 uppercase tracking-widest">
                           Request Lead Token
@@ -543,19 +574,21 @@ export default function App() {
               {showOnboarding && <Onboarding onComplete={completeOnboarding} />}
             </AnimatePresence>
             
-            {/* Sidebar - Desktop Only */}
-            <div className="hidden lg:block">
-              <Sidebar 
-                currentTab={currentTab} 
-                onTabChange={setCurrentTab} 
-                isCollapsed={sidebarCollapsed}
-                setIsCollapsed={setSidebarCollapsed}
-                onLogout={handleLogout}
-                isHost={appMode === 'server'}
-              />
-            </div>
+            {/* Sidebar - Desktop Client Only */}
+            {appMode === 'client' && (
+              <div className="hidden lg:block">
+                <Sidebar 
+                  currentTab={currentTab} 
+                  onTabChange={setCurrentTab} 
+                  isCollapsed={sidebarCollapsed}
+                  setIsCollapsed={setSidebarCollapsed}
+                  onLogout={handleLogout}
+                  isHost={false}
+                />
+              </div>
+            )}
 
-            <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
+            <div className={`transition-all duration-300 ${appMode === 'client' ? (sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64') : ''}`}>
               <Navbar 
                 username={username || ''} 
                 onLogout={handleLogout} 
@@ -564,7 +597,7 @@ export default function App() {
                 isHost={appMode === 'server'}
               />
 
-              <main className="pt-24 px-6 md:px-12 max-w-[1600px] mx-auto min-h-screen">
+              <main className={`pt-24 px-6 md:px-12 max-w-[1600px] mx-auto min-h-screen ${appMode === 'server' ? 'lg:px-12' : ''}`}>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentTab}
@@ -579,10 +612,12 @@ export default function App() {
               </main>
             </div>
 
-            {/* Navigation - Mobile Only */}
-            <div className="lg:hidden">
-              <Navigation currentTab={currentTab} onTabChange={setCurrentTab} />
-            </div>
+            {/* Navigation - Mobile Client Only */}
+            {appMode === 'client' && (
+              <div className="lg:hidden">
+                <Navigation currentTab={currentTab} onTabChange={setCurrentTab} />
+              </div>
+            )}
             
             {/* Global Intercom Controls */}
             <AnimatePresence>
