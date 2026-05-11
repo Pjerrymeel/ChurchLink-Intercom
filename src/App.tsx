@@ -50,12 +50,15 @@ export default function App() {
   useEffect(() => {
     let timer: any;
     if (!socketConnected) {
-      timer = setTimeout(() => setShowErrorOverlay(true), 3000);
+      // Give the Host (EXE) more time to start its internal engine (10s) 
+      // compared to a Client (3s)
+      const timeout = isHost ? 10000 : 3000;
+      timer = setTimeout(() => setShowErrorOverlay(true), timeout);
     } else {
       setShowErrorOverlay(false);
     }
     return () => clearTimeout(timer);
-  }, [socketConnected]);
+  }, [socketConnected, isHost]);
 
   const isPTTActiveRef = useRef(false);
   // WebRTC Refs
@@ -148,17 +151,17 @@ export default function App() {
       const currentHostname = window.location.hostname;
       const currentProtocol = window.location.protocol;
       
-      if (manualIp) {
-        // High priority: Manual IP
-        connectionUrl = (manualIp.startsWith('http') ? manualIp : `http://${manualIp}:3000`);
-      } else if (isHost) { 
-        // We are on the Host EXE, always use localhost
+      if (isHost) {
+        // High priority: EXE is the HUB itself, MUST use localhost. NEVER search for external.
         connectionUrl = 'http://localhost:3000';
+      } else if (manualIp) {
+        // Clients can use manual IP
+        connectionUrl = (manualIp.startsWith('http') ? manualIp : `http://${manualIp}:3000`);
       } else if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
-        // We are on a browser on the same machine
+        // Browser on the same machine
         connectionUrl = 'http://localhost:3000';
       } else if (currentProtocol.includes('http')) {
-        // Standard browser connection
+        // Standard Web Client
         connectionUrl = window.location.origin;
       }
       
@@ -662,22 +665,22 @@ export default function App() {
             className="fixed inset-0 z-[250] bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-6"
           >
             <div className="max-w-md w-full glass p-8 rounded-[2.5rem] border-red-500/20 text-center space-y-6 shadow-2xl">
-              <div className="h-16 w-16 bg-red-500/10 rounded-full mx-auto flex items-center justify-center text-red-500">
-                <WifiOff size={32} />
+              <div className={`h-16 w-16 rounded-full mx-auto flex items-center justify-center ${isHost && !socketConnected ? 'bg-blue-500/10 text-blue-500' : 'bg-red-500/10 text-red-500'}`}>
+                {isHost && !socketConnected ? <RefreshCw size={32} className="animate-spin" /> : <WifiOff size={32} />}
               </div>
               
               {!isChangingServer ? (
                 <>
                   <div className="space-y-4">
-                    <h2 className="text-xl font-bold text-red-100">
-                      {window.electron ? "Internal Server Unreachable" : "Host Server Not Found"}
+                    <h2 className={`text-xl font-bold ${isHost && !socketConnected ? 'text-blue-100' : 'text-red-100'}`}>
+                      {isHost ? (socketConnected ? "Hub Active" : "Initializing Hub Engine") : "Host Server Not Found"}
                     </h2>
                     
                     <div className="bg-zinc-900/50 rounded-2xl p-4 border border-zinc-800 text-left space-y-3">
-                      {window.electron ? (
+                      {isHost ? (
                         <p className="text-zinc-400 text-xs leading-relaxed">
-                          The <span className="text-blue-400 font-bold uppercase tracking-widest text-[10px]">Intercom Engine</span> failed to start. 
-                          Try restarting the application or check port 3000.
+                          The <span className="text-blue-400 font-bold uppercase tracking-widest text-[10px]">Intercom Engine (Hub)</span> is initializing. 
+                          If this takes too long, please check if port 3000 is blocked by another application.
                         </p>
                       ) : (
                         <div className="space-y-3">
@@ -696,7 +699,7 @@ export default function App() {
                             </li>
                             <li className="flex items-start gap-2">
                               <div className="h-1 w-1 rounded-full bg-blue-500 mt-1" />
-                              Enter the Host IP address.
+                              Enter the Host IP address on your mobile device.
                             </li>
                           </ul>
                         </div>
@@ -712,15 +715,17 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <button 
-                      onClick={() => setIsChangingServer(true)}
-                      className="bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
-                    >
-                      Change IP
-                    </button>
+                    {!isHost && (
+                      <button 
+                        onClick={() => setIsChangingServer(true)}
+                        className="bg-zinc-900 border border-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-bold hover:bg-zinc-800 transition-all uppercase tracking-widest"
+                      >
+                        Change IP
+                      </button>
+                    )}
                     <button 
                       onClick={() => window.location.reload()}
-                      className="bg-blue-600/20 border border-blue-500/30 text-blue-400 py-3 rounded-xl text-[10px] font-bold hover:bg-blue-600/30 transition-all uppercase tracking-widest"
+                      className={`bg-blue-600/20 border border-blue-500/30 text-blue-400 py-3 rounded-xl text-[10px] font-bold hover:bg-blue-600/30 transition-all uppercase tracking-widest ${isHost ? 'col-span-2' : ''}`}
                     >
                       Refresh
                     </button>

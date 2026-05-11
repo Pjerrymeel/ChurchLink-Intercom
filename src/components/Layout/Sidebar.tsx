@@ -52,7 +52,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="leading-tight">
               <h1 className="font-bold text-lg tracking-tight">ChurchLink</h1>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest text-blue-500">Intercom Pro</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${!!window.electron ? 'text-emerald-500' : 'text-blue-500'}`}>
+                {!!window.electron ? 'Master Hub' : 'Intercom Client'}
+              </p>
             </div>
           </div>
         )}

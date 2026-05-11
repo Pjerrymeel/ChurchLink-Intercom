@@ -55,9 +55,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
       return;
     }
 
-    if (serverIp) {
+    if (!window.electron && serverIp) {
       localStorage.setItem('churchlink_server_ip', serverIp);
-    } else {
+    } else if (!window.electron) {
+      localStorage.removeItem('churchlink_server_ip');
+    }
+    
+    // If it is host, we enforce clearing any manual IP to ensure it uses localhost
+    if (window.electron) {
       localStorage.removeItem('churchlink_server_ip');
     }
 
@@ -211,50 +216,50 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onJoin }) => {
                 </div>
               </div>
 
-              {/* Advanced Settings */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest flex items-center gap-1.5 hover:text-blue-500 transition-colors"
-                >
-                  <Settings size={12} />
-                  Advanced: Server Settings
-                </button>
-                
-                <AnimatePresence>
-                  {showAdvanced && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden space-y-2 pt-4"
-                    >
-                      <label htmlFor="ip" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
-                        Manual Server IP (LAN)
-                      </label>
-                      <div className="relative group">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors">
-                          <Globe size={18} />
+              {/* Advanced Settings - ONLY for Clients */}
+              {!window.electron && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest flex items-center gap-1.5 hover:text-blue-500 transition-colors"
+                  >
+                    <Settings size={12} />
+                    Advanced: Server Settings
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showAdvanced && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden space-y-2 pt-4"
+                      >
+                        <label htmlFor="ip" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
+                          Manual Server IP (LAN)
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors">
+                            <Globe size={18} />
+                          </div>
+                          <input
+                            id="ip"
+                            type="text"
+                            placeholder="e.g. 192.168.1.15"
+                            className="w-full bg-zinc-950/30 border border-zinc-800/50 rounded-xl py-3 pl-11 pr-4 text-zinc-300 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 transition-all text-sm"
+                            value={serverIp}
+                            onChange={(e) => setServerIp(e.target.value)}
+                          />
                         </div>
-                        <input
-                          id="ip"
-                          type="text"
-                          placeholder="e.g. 192.168.1.15"
-                          className="w-full bg-zinc-950/30 border border-zinc-800/50 rounded-xl py-3 pl-11 pr-4 text-zinc-300 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 transition-all text-sm"
-                          value={serverIp}
-                          onChange={(e) => setServerIp(e.target.value)}
-                        />
-                      </div>
-                      <p className="text-[9px] text-zinc-700 italic ml-1">
-                        {window.electron 
-                          ? "Usually automatic: 'localhost' if this is the host PC."
-                          : "Required for Mobile: Enter the IP shown on your server PC's screen (e.g. 192.168.1.100)."}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                        <p className="text-[9px] text-zinc-700 italic ml-1">
+                          Required for Mobile: Enter the IP shown on your host server's screen.
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
 
             {error && (
