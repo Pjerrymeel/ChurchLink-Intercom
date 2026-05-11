@@ -36,11 +36,14 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isPTTActive, setIsPTTActive] = useState(false);
-  const isHost = !!window.electron;
-  const [appMode, setAppMode] = useState<'server' | 'client'>(isHost ? 'server' : 'client');
-  const [username, setUsername] = useState<string | null>(null);
-  const [hasJoined, setHasJoined] = useState(false);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const queryParams = new URLSearchParams(window.location.search);
+  const forceMode = queryParams.get('mode');
+  
+  const isHost = forceMode === 'server' || !!(window as any).electron;
+  const [appMode] = useState<'server' | 'client'>(isHost ? 'server' : 'client');
+  const [username, setUsername] = useState<string | null>(isHost ? 'Master Hub' : localStorage.getItem('churchlink_username'));
+  const [hasJoined, setHasJoined] = useState(isHost || (!!localStorage.getItem('churchlink_username') && !!localStorage.getItem('churchlink_loginStatus')));
+  const [isAuthReady, setIsAuthReady] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
   const [socketConnected, setSocketConnected] = useState(false);
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
@@ -50,21 +53,11 @@ export default function App() {
   const [tempIp, setTempIp] = useState(localStorage.getItem('churchlink_server_ip') || '');
   
   useEffect(() => {
-    // Initial Auth State Detection
-    const storedUsername = localStorage.getItem('churchlink_username');
-    const loginStatus = localStorage.getItem('churchlink_loginStatus');
-    
+    // Sync localStorage for server mode
     if (appMode === 'server') {
-      // EXE ONLY MODE: Always bypass login
-      setUsername('Master Hub');
-      setHasJoined(true);
       localStorage.setItem('churchlink_username', 'Master Hub');
       localStorage.setItem('churchlink_loginStatus', 'true');
-    } else if (storedUsername && loginStatus === 'true') {
-      setUsername(storedUsername);
-      setHasJoined(true);
     }
-    setIsAuthReady(true);
   }, [appMode]);
 
   useEffect(() => {
@@ -170,8 +163,9 @@ export default function App() {
       const currentProtocol = window.location.protocol;
       
       if (appMode === 'server') {
-        // EXE is the HUB itself, MUST use localhost. NEVER search for external.
-        connectionUrl = 'http://localhost:3000';
+        // EXE is the HUB itself. 
+        // In local Electron, use localhost. In browser preview, use current origin.
+        connectionUrl = (window as any).electron ? 'http://localhost:3000' : window.location.origin;
       } else if (manualIp) {
         // Clients can use manual IP
         connectionUrl = (manualIp.startsWith('http') ? manualIp : `http://${manualIp}:3000`);
@@ -326,11 +320,9 @@ export default function App() {
     const loginStatus = localStorage.getItem('churchlink_loginStatus');
     
     if (appMode === 'server') {
-      // EXE ALWAYS logins as Master Hub automatically
+      // Sync state
       setUsername('Master Hub');
       setHasJoined(true);
-      localStorage.setItem('churchlink_username', 'Master Hub');
-      localStorage.setItem('churchlink_loginStatus', 'true');
     } else if (storedUsername && loginStatus === 'true') {
       setUsername(storedUsername);
       setHasJoined(true);
