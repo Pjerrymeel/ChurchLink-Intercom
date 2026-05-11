@@ -20,6 +20,7 @@ interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (v: boolean) => void;
   onLogout: () => void;
+  isHost?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -27,7 +28,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onTabChange,
   isCollapsed,
   setIsCollapsed,
-  onLogout
+  onLogout,
+  isHost = false
 }) => {
   const menuItems: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -52,8 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="leading-tight">
               <h1 className="font-bold text-lg tracking-tight">ChurchLink</h1>
-              <p className={`text-[10px] font-bold uppercase tracking-widest ${!!window.electron ? 'text-emerald-500' : 'text-blue-500'}`}>
-                {!!window.electron ? 'Master Hub' : 'Intercom Client'}
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${isHost ? 'text-emerald-500' : 'text-blue-500'}`}>
+                {isHost ? 'Master Hub' : 'Intercom Client'}
               </p>
             </div>
           </div>
@@ -115,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {!window.electron && (
+        {!isHost && (
           <button 
             onClick={onLogout}
             className="w-full flex items-center gap-4 py-3 px-4 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-400/5 transition-all"

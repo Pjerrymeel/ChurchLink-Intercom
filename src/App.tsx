@@ -35,7 +35,10 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isPTTActive, setIsPTTActive] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
+  const isHost = !!window.electron;
+  const [appMode, setAppMode] = useState<'server' | 'client'>(isHost ? 'server' : 'client');
+  const [username, setUsername] = useState<string | null>(localStorage.getItem('churchlink_username') || (isHost ? 'Master Hub' : null));
+  const [hasJoined, setHasJoined] = useState(isHost || !!localStorage.getItem('churchlink_loginStatus'));
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -45,18 +48,16 @@ export default function App() {
   const [isChangingServer, setIsChangingServer] = useState(false);
   const [tempIp, setTempIp] = useState(localStorage.getItem('churchlink_server_ip') || '');
   
-  const isHost = !!window.electron;
-  
   useEffect(() => {
     let timer: any;
-    if (!socketConnected && !isHost) {
-      // Only show error overlay for CLIENTS (non-EXE)
+    // SERVER (EXE) NEVER shows "Host Not Found" because it IS the host
+    if (!socketConnected && appMode === 'client') {
       timer = setTimeout(() => setShowErrorOverlay(true), 3000);
     } else {
       setShowErrorOverlay(false);
     }
     return () => clearTimeout(timer);
-  }, [socketConnected, isHost]);
+  }, [socketConnected, appMode]);
 
   const isPTTActiveRef = useRef(false);
   // WebRTC Refs
@@ -149,8 +150,8 @@ export default function App() {
       const currentHostname = window.location.hostname;
       const currentProtocol = window.location.protocol;
       
-      if (isHost) {
-        // High priority: EXE is the HUB itself, MUST use localhost. NEVER search for external.
+      if (appMode === 'server') {
+        // EXE is the HUB itself, MUST use localhost. NEVER search for external.
         connectionUrl = 'http://localhost:3000';
       } else if (manualIp) {
         // Clients can use manual IP
@@ -166,18 +167,18 @@ export default function App() {
       // Special check for mobile environments
       const isMobileEnv = currentProtocol.includes('capacitor') || currentProtocol.includes('file') || currentProtocol.includes('android');
       
-      if (!isHost && isMobileEnv && !manualIp) {
+      if (appMode === 'client' && isMobileEnv && !manualIp) {
          console.warn("Mobile Client detected without Host IP. Showing configuration overlay.");
          setTimeout(() => setShowErrorOverlay(true), 100);
          return; // Don't even try to connect to nothing
       }
 
-      console.log(`📡 Connecting to: ${connectionUrl || 'automatic'} | Role: ${isHost ? 'HOST' : 'CLIENT'}`);
+      console.log(`📡 Mode: ${appMode.toUpperCase()} | Connecting to: ${connectionUrl || 'automatic'}`);
       
       const socket = io(connectionUrl, {
         transports: ['websocket'],
         upgrade: false,
-        reconnectionAttempts: 50, // Keep trying!
+        reconnectionAttempts: appMode === 'server' ? 100 : 50, 
         reconnectionDelay: 1000,
         timeout: 10000
       });
@@ -305,33 +306,38 @@ export default function App() {
     const storedUsername = localStorage.getItem('churchlink_username');
     const loginStatus = localStorage.getItem('churchlink_loginStatus');
     
-    if (isHost) {
+    if (appMode === 'server') {
       // EXE ALWAYS logins as Master Hub automatically
       setUsername('Master Hub');
+      setHasJoined(true);
       localStorage.setItem('churchlink_username', 'Master Hub');
       localStorage.setItem('churchlink_loginStatus', 'true');
     } else if (storedUsername && loginStatus === 'true') {
       setUsername(storedUsername);
+      setHasJoined(true);
     }
     setIsAuthReady(true);
-  }, [isHost]);
+  }, [appMode]);
 
   const completeOnboarding = () => {
     localStorage.setItem('churchlink_onboarding_complete', 'true');
     setShowOnboarding(false);
   };
 
-  const handleLogin = (name: string) => {
+  const handleJoin = (name: string) => {
     localStorage.setItem('churchlink_username', name);
     localStorage.setItem('churchlink_loginStatus', 'true');
     setUsername(name);
+    setHasJoined(true);
   };
 
   const handleLogout = () => {
+    if (appMode === 'server') return; // Server cannot logout
     if (socketRef.current) socketRef.current.disconnect();
     localStorage.removeItem('churchlink_username');
     localStorage.removeItem('churchlink_loginStatus');
     setUsername(null);
+    setHasJoined(false);
   };
 
   const changeChannel = (channelId: string) => {
@@ -515,7 +521,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-zinc-950 font-sans selection:bg-blue-500/30 overflow-x-hidden">
       <AnimatePresence mode="wait">
-        {!username ? (
+        {!hasJoined ? (
           <motion.div
             key="welcome"
             initial={{ opacity: 0 }}
@@ -524,7 +530,7 @@ export default function App() {
             transition={{ duration: 0.5 }}
             className="fixed inset-0 z-[200]"
           >
-            <WelcomeScreen onJoin={handleLogin} />
+            <WelcomeScreen onJoin={handleJoin} />
           </motion.div>
         ) : (
           <motion.div
@@ -545,15 +551,17 @@ export default function App() {
                 isCollapsed={sidebarCollapsed}
                 setIsCollapsed={setSidebarCollapsed}
                 onLogout={handleLogout}
+                isHost={appMode === 'server'}
               />
             </div>
 
             <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
               <Navbar 
-                username={username} 
+                username={username || ''} 
                 onLogout={handleLogout} 
                 socketConnected={socketConnected}
                 serverInfo={serverInfo}
+                isHost={appMode === 'server'}
               />
 
               <main className="pt-24 px-6 md:px-12 max-w-[1600px] mx-auto min-h-screen">
@@ -579,7 +587,7 @@ export default function App() {
             {/* Global Intercom Controls */}
             <AnimatePresence>
               {/* Only show PTT on Clients (non-Host) who are NOT on the Main Tech listen-only channel */}
-              {!isHost && !isMainTech && (
+              {appMode === 'client' && !isMainTech && (
                 <motion.div 
                   initial={{ y: 150 }}
                   animate={{ y: 0 }}
@@ -639,7 +647,7 @@ export default function App() {
               )}
 
               {/* Show Listen-Only status for Main Tech channel on Clients */}
-              {!isHost && isMainTech && (
+              {appMode === 'client' && isMainTech && (
                 <motion.div 
                   initial={{ y: 150 }}
                   animate={{ y: 0 }}
